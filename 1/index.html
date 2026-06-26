@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Relevais Health — Patient Onboarding Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --primary:#0c3b6e;
+    --primary-light:#6497cd;
+    --primary-50:#e3f1ff;
+    --primary-foreground:#fafaf9;
+    --foreground:#1c1917;
+    --foreground-muted:#79716b;
+    --neutral-foreground:#44403b;
+    --neutral:#f5f5f4;
+    --neutral-200:#e7e5e4;
+    --border:#d6d3d1;
+    --input-border:#d6d3d1;
+    --background:#ffffff;
+    --surface:rgba(250,250,249,0.6);
+    --page-bg:#fafaf9;
+    --select-blue:#e9f2fc;
+    --success:#6ba539;
+    --warning-bg:#fbf2d6;
+    --warning-fg:#8a6a18;
+    --serif:'Source Serif 4', Georgia, serif;
+    --sans:'Instrument Sans', -apple-system, system-ui, sans-serif;
+  }
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:var(--sans);
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #eef4fb 0%, rgba(238,244,251,0) 60%),
+      #eceef1;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:40px 16px 60px;
+    color:var(--foreground);
+  }
+
+  .stage-caption{
+    font-family:var(--sans);
+    color:#6b7280;
+    font-size:13px;
+    letter-spacing:.02em;
+    margin-bottom:22px;
+    text-align:center;
+  }
+  .stage-caption b{color:#374151;font-weight:600;}
+
+  /* ---------- Phone shell ---------- */
+  .phone{
+    position:relative;
+    width:402px;
+    height:874px;
+    max-height:calc(100vh - 130px);
+    border-radius:46px;
+    background:#000;
+    padding:5px;
+    box-shadow:0 40px 90px -30px rgba(15,40,75,.45), 0 12px 30px -12px rgba(0,0,0,.25);
+  }
+  .phone-screen{
+    position:relative;
+    width:100%;height:100%;
+    border-radius:42px;
+    overflow:hidden;
+    background:var(--page-bg);
+  }
+
+  /* ---------- Screen ---------- */
+  .screen{
+    position:absolute;inset:0;
+    display:none;
+    background:linear-gradient(180deg, rgba(245,250,255,0) 0%, rgb(245,250,255) 100%), var(--page-bg);
+  }
+  .screen.active{display:block;}
+
+  .scroll{
+    position:absolute;inset:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .scroll::-webkit-scrollbar{display:none;}
+
+  .content{
+    min-height:100%;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* ---------- Status bar ---------- */
+  .status-bar{
+    position:absolute;top:0;left:0;right:0;height:54px;z-index:20;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 22px 0;
+    pointer-events:none;
+    background:linear-gradient(180deg, rgba(247,250,253,0.92) 0%, rgba(247,250,253,0.78) 55%, rgba(247,250,253,0) 100%);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+  }
+  .status-bar .time{font-weight:600;font-size:16px;color:#000;letter-spacing:.01em;}
+  .status-icons{display:flex;align-items:center;gap:7px;}
+  .status-icons svg{display:block;}
+
+  /* ---------- Home indicator ---------- */
+  .home-indicator{
+    position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+    width:140px;height:5px;border-radius:100px;background:#000;z-index:20;
+  }
+
+  /* ---------- Header ---------- */
+  header.brand{
+    padding:64px 24px 18px;
+    display:flex;flex-direction:column;gap:6px;align-items:flex-start;
+  }
+  .logo{
+    font-family:var(--serif);
+    font-weight:700;
+    font-size:27px;
+    line-height:1;
+    color:var(--primary);
+    letter-spacing:-.01em;
+  }
+  .tagline{
+    font-family:var(--serif);
+    font-weight:500;
+    font-size:18px;
+    line-height:1.2;
+    color:var(--primary-light);
+    letter-spacing:-.01em;
+  }
+
+  /* ---------- Body / surface ---------- */
+  .body{flex:1;display:flex;flex-direction:column;padding:0 8px 26px;}
+  .surface{
+    flex:1;display:flex;flex-direction:column;gap:18px;
+    background:var(--surface);
+    border-radius:12px;
+    padding:6px 8px 14px;
+  }
+  .page-title{display:flex;flex-direction:column;gap:7px;padding:6px 8px 0;}
+  .step-label{font-weight:500;font-size:12px;color:var(--primary-light);letter-spacing:.01em;}
+  .title{
+    font-family:var(--serif);font-weight:600;font-size:36px;line-height:1.15;
+    color:var(--foreground);letter-spacing:-.015em;margin:0;
+  }
+  .subtitle{
+    font-weight:400;font-size:17px;line-height:1.4;color:var(--foreground-muted);margin:0;
+  }
+
+  .main{flex:1;display:flex;flex-direction:column;gap:28px;}
+
+  /* ---------- Question card ---------- */
+  .qcard{
+    background:var(--background);
+    border-radius:22px;
+    box-shadow:0 4px 15px rgba(38,38,38,.06);
+    padding:16px 0 20px;
+    display:flex;flex-direction:column;gap:22px;
+  }
+  .qcard-section{padding:0 16px;display:flex;flex-direction:column;gap:14px;}
+  .qcard-divider{height:1px;background:var(--neutral);width:100%;}
+
+  .icon-badge{
+    width:32px;height:32px;border-radius:999px;background:var(--primary-50);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--primary);
+  }
+  .icon-badge svg{width:16px;height:16px;}
+
+  .q-head{display:flex;flex-direction:column;gap:8px;}
+  .question{
+    font-family:var(--serif);font-weight:500;font-size:20px;line-height:1.2;
+    color:var(--neutral-foreground);letter-spacing:-.01em;
+  }
+  .q-subtle{font-weight:400;font-size:13px;color:var(--foreground-muted);margin-top:-8px;}
+  .q-hint{font-weight:400;font-size:13px;color:var(--foreground-muted);}
+
+  /* ---------- Fields / inputs ---------- */
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field-label{font-weight:600;font-size:16px;color:var(--neutral-foreground);}
+
+  .input{
+    width:100%;height:48px;border:1px solid var(--input-border);border-radius:8px;
+    background:var(--background);
+    padding:8px 14px 8px 16px;
+    font-family:var(--sans);font-weight:500;font-size:14px;color:var(--foreground);
+    outline:none;
+  }
+  .input::placeholder{color:var(--foreground-muted);font-weight:500;}
+  .input:focus{border-color:var(--primary-light);box-shadow:0 0 0 3px rgba(100,151,205,.18);}
+
+  .input-wrap{position:relative;}
+  .input-wrap .input{padding-right:42px;}
+  .input-wrap .field-icon{
+    position:absolute;right:14px;top:50%;transform:translateY(-50%);
+    color:var(--neutral-foreground);pointer-events:none;
+  }
+  .input-wrap .field-icon svg{width:18px;height:18px;}
+
+  .select-wrap{position:relative;}
+  select.input{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:42px;color:var(--foreground-muted);}
+  select.input.has-value{color:var(--foreground);}
+  .select-wrap .field-icon{
+    position:absolute;right:14px;top:50%;transform:translateY(-50%);
+    color:var(--neutral-foreground);pointer-events:none;
+  }
+  .select-wrap .field-icon svg{width:18px;height:18px;}
+
+  /* ---------- Options (radio / checkbox) ---------- */
+  .opt-group{display:flex;flex-direction:column;gap:10px;}
+  .opt-group.segmented{flex-direction:row;gap:12px;}
+  .opt-group.segmented .option{flex:1;}
+
+  .option{
+    display:flex;align-items:center;gap:11px;
+    border:1px solid var(--border);border-radius:10px;
+    background:var(--background);
+    padding:13px 16px;cursor:pointer;
+    transition:background .12s ease, border-color .12s ease;
+    user-select:none;
+  }
+  .option:hover{border-color:#c4c0bc;}
+  .option .opt-label{font-weight:400;font-size:16px;color:var(--foreground);line-height:1.3;}
+  .option .opt-label strong{font-weight:700;}
+  .option.selected{background:var(--select-blue);border-color:var(--primary-light);}
+
+  .radio{
+    width:20px;height:20px;border-radius:50%;border:1.5px solid #c4beb8;
+    flex:none;position:relative;background:#fff;transition:border-color .12s;
+  }
+  .option.selected .radio{border-color:var(--primary);border-width:2px;}
+  .option.selected .radio::after{
+    content:"";position:absolute;inset:0;margin:auto;width:9px;height:9px;border-radius:50%;background:var(--primary);
+  }
+
+  .checkbox{
+    width:20px;height:20px;border-radius:5px;border:1.5px solid #c4beb8;
+    flex:none;position:relative;background:#fff;transition:all .12s;
+  }
+  .option.selected .checkbox{background:var(--primary);border-color:var(--primary);}
+  .option.selected .checkbox::after{
+    content:"";position:absolute;left:50%;top:46%;width:5px;height:10px;
+    border:solid #fff;border-width:0 2px 2px 0;
+    transform:translate(-50%,-50%) rotate(45deg);
+  }
+
+  /* ---------- Inline alert ---------- */
+  .alert{
+    display:flex;align-items:flex-start;gap:9px;
+    background:var(--warning-bg);border-radius:10px;padding:12px 14px;
+  }
+  .alert svg{width:18px;height:18px;color:var(--warning-fg);flex:none;margin-top:1px;}
+  .alert-text{font-weight:600;font-size:14px;line-height:1.35;color:var(--warning-fg);}
+
+  /* ---------- Conditional reveal ---------- */
+  .conditional{display:none;flex-direction:column;gap:14px;}
+  .conditional.open{display:flex;animation:reveal .22s ease;}
+  @keyframes reveal{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+
+  /* ---------- Slider ---------- */
+  .slider-wrap{display:flex;flex-direction:column;gap:9px;margin-top:2px;}
+  .slider{position:relative;height:30px;}
+  .slider input[type=range]{
+    position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;z-index:3;
+  }
+  .slider-track{
+    position:absolute;top:50%;left:0;right:0;height:6px;transform:translateY(-50%);
+    background:var(--neutral-200);border-radius:999px;overflow:hidden;
+  }
+  .slider-fill{height:100%;background:var(--primary);border-radius:999px;width:var(--pct,50%);}
+  .slider-thumb{
+    position:absolute;top:50%;left:var(--pct,50%);transform:translate(-50%,-50%);
+    height:28px;min-width:46px;padding:0 7px;
+    background:#fff;border:1px solid var(--border);border-radius:999px;
+    box-shadow:0 1px 4px rgba(0,0,0,.14);
+    display:flex;align-items:center;justify-content:center;gap:5px;
+    font-weight:600;font-size:14px;color:var(--neutral-foreground);z-index:2;
+  }
+  .slider-thumb .chev{color:#c4beb8;font-size:13px;line-height:1;}
+  .slider-labels{display:flex;justify-content:space-between;font-weight:400;font-size:13px;color:var(--foreground-muted);}
+
+  /* ---------- Terms scroll box ---------- */
+  .terms-box{
+    border:1px solid var(--border);border-radius:14px;background:#fff;
+    padding:16px;max-height:300px;overflow-y:auto;
+  }
+  .terms-box h4{font-family:var(--serif);font-weight:600;font-size:16px;margin:0 0 10px;color:var(--neutral-foreground);}
+  .terms-box p{font-size:13px;line-height:1.55;color:var(--foreground-muted);margin:0 0 12px;}
+
+  /* ---------- Footer nav ---------- */
+  .footer-nav{display:flex;gap:16px;align-items:center;margin-top:6px;}
+  .btn{
+    border:none;cursor:pointer;font-family:var(--sans);font-weight:600;font-size:16px;
+    border-radius:999px;padding:14px 20px;display:flex;align-items:center;justify-content:center;gap:7px;
+    transition:filter .12s, background .12s;
+  }
+  .btn svg{width:16px;height:16px;}
+  .btn-back{
+    background:var(--primary-foreground);border:1px solid var(--border);color:var(--neutral-foreground);
+    width:120px;flex:none;padding:13px 16px;
+  }
+  .btn-back:hover{background:#f1efed;}
+  .btn-next{background:var(--primary);color:var(--primary-foreground);flex:1;}
+  .btn-next:hover{filter:brightness(1.08);}
+  .btn-full{background:var(--primary);color:var(--primary-foreground);width:100%;}
+  .btn-full:hover{filter:brightness(1.08);}
+
+  /* ---------- Confirmation ---------- */
+  .confirm{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:18px;padding:24px 16px 0;}
+  .success-ring{
+    width:96px;height:96px;border-radius:50%;border:4px solid var(--success);
+    display:flex;align-items:center;justify-content:center;margin-bottom:6px;
+  }
+  .success-ring svg{width:46px;height:46px;color:var(--success);}
+  .confirm .title{font-size:36px;}
+  .confirm-footer{padding:0 8px;}
+
+  /* ---------- Full-bleed device mode (iPhone 17 Pro, 402×874pt) ---------- */
+  @media (max-width:460px){
+    body{padding:0;background:#000;align-items:stretch;}
+    .stage-caption{display:none;}
+    .phone{
+      width:100vw;height:100vh;height:100dvh;max-height:none;
+      border-radius:0;padding:0;box-shadow:none;
+    }
+    .phone-screen{border-radius:0;}
+  }
+</style>
+</head>
+<body>
+  <div class="stage-caption">Relevais Health — <b>Patient Onboarding</b> · clickable prototype</div>
+  <div class="phone">
+    <div class="phone-screen" id="app"></div>
+  </div>
+
+<script>
+/* ============================================================
+   Lucide-style inline icon set (icons used in the Figma design)
+   ============================================================ */
+const ICONS = {
+  'circle-user-round':'<circle cx="12" cy="12" r="10"/><path d="M18 20a6 6 0 0 0-12 0"/><circle cx="12" cy="10" r="4"/>',
+  'contact-round':'<path d="M16 18a4 4 0 0 0-8 0"/><rect width="18" height="18" x="3" y="4" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M8 2v2"/><path d="M16 2v2"/>',
+  'calendar':'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+  'signpost':'<path d="M12 3v3"/><path d="M12 13v8"/><path d="M16 6a2 2 0 0 1 1.4.6l3 2.4a1 1 0 0 1 0 1.6l-3 2.4A2 2 0 0 1 16 16H6a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2Z"/>',
+  'house':'<path d="M3 9.5 12 3l9 6.5"/><path d="M5 9.4V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.4"/><path d="M9 21v-7h6v7"/>',
+  'accessibility':'<circle cx="16" cy="4" r="1"/><path d="m18 19 1-7-5.87.94"/><path d="m5 8 3-3 5.5 3-2.21 3.1"/><path d="M4.24 14.48a5 5 0 0 0 6.88 6.62"/><path d="M13.76 17.52a5 5 0 0 0-3.72-7.51"/>',
+  'stethoscope':'<path d="M11 2v2"/><path d="M5 2v2"/><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/>',
+  'person-standing':'<circle cx="12" cy="5" r="1"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/>',
+  'brain':'<path d="M12 5a3 3 0 1 0-5.997.142 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.142 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>',
+  'smartphone':'<rect width="14" height="20" x="5" y="2" rx="2.5"/><path d="M12 18h.01"/>',
+  'watch':'<circle cx="12" cy="12" r="6"/><path d="M16.51 17.35 16 22H8l-.51-4.65"/><path d="m7.49 6.65.51-4.65h8l-.51 4.65"/>',
+  'laptop':'<rect width="18" height="12" x="3" y="4" rx="2"/><path d="M2 20h20"/>',
+  'search':'<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+  'chevron-down':'<path d="m6 9 6 6 6-6"/>',
+  'arrow-left':'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  'arrow-right':'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  'check':'<path d="M20 6 9 17l-5-5"/>',
+  'circle-alert':'<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>'
+};
+function I(name, sw){
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw||2}" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]||''}</svg>`;
+}
+
+/* ============================================================
+   Markup builders
+   ============================================================ */
+function badge(icon){ return `<div class="icon-badge">${I(icon)}</div>`; }
+function qhead(icon,q){ return `<div class="q-head">${badge(icon)}<div class="question">${q}</div></div>`; }
+function question(q){ return `<div class="question">${q}</div>`; }
+function subtle(t){ return `<div class="q-subtle">${t}</div>`; }
+
+function tinput(ph, opts={}){
+  if(opts.icon){
+    return `<div class="input-wrap"><input class="input" placeholder="${ph}" /><span class="field-icon">${I(opts.icon)}</span></div>`;
+  }
+  return `<input class="input" placeholder="${ph}" />`;
+}
+function field(label, inner){ return `<div class="field"><label class="field-label">${label}</label>${inner}</div>`; }
+function select(ph, options){
+  return `<div class="select-wrap"><select class="input"><option value="" selected disabled hidden>${ph}</option>${options.map(o=>`<option>${o}</option>`).join('')}</select><span class="field-icon">${I('chevron-down')}</span></div>`;
+}
+function opt(kind,label,reveal){
+  return `<div class="option" data-kind="${kind}"${reveal?` data-reveal="${reveal}"`:''}><span class="${kind}"></span><span class="opt-label">${label}</span></div>`;
+}
+function group(kind, options, seg){
+  return `<div class="opt-group${seg?' segmented':''}" data-mode="${kind==='checkbox'?'multi':'single'}">${options.join('')}</div>`;
+}
+function cond(id, inner){ return `<div class="conditional" id="${id}">${inner}</div>`; }
+function slider(value,left,right){
+  return `<div class="slider-wrap"><div class="slider"><input type="range" min="1" max="10" value="${value}" />`
+    +`<div class="slider-track"><div class="slider-fill"></div></div>`
+    +`<div class="slider-thumb"><span class="chev">&#8249;</span><span class="val">${value}</span><span class="chev">&#8250;</span></div></div>`
+    +`<div class="slider-labels"><span>${left}</span><span>${right}</span></div></div>`;
+}
+function qcard(sections){ return `<div class="qcard">${sections.join('<div class="qcard-divider"></div>')}</div>`; }
+function section(inner){ return `<div class="qcard-section">${inner}</div>`; }
+
+/* ============================================================
+   Screen definitions (11 logical steps + confirmation)
+   ============================================================ */
+const LOREM = `<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p><p>Proin in augue id augue ullamcorper tristique sit amet et orci. Nulla facilisi. Maecenas sapien magna, venenatis id lacinia a, suscipit ut lorem. Nulla sit amet tincidunt nibh. Proin semper odio bibendum, ultricies velit ut, varius metus.</p><p>Sed semper ullamcorper velit, tincidunt interdum velit eleifend a. Duis lorem tellus, blandit in libero eu, consectetur gravida est. Pellentesque sit amet porttitor felis. Donec ut est lorem. Praesent rhoncus, lectus id fermentum faucibus, enim purus aliquet est.</p><p>Nunc gravida ullamcorper leo, quis volutpat magna iaculis nec. Etiam vehicula quam sed dolor. Vivamus laoreet tincidunt mauris, vitae malesuada metus dignissim quis.</p>`;
+
+const screens = [
+  /* 1 — Identity */
+  {
+    step:'Step 1 of 10',
+    title:"Let's get you set up.",
+    subtitle:'We will use your smartphone and smartwatch to track your progress.',
+    next:'Next',
+    main: qcard([
+      section(
+        qhead('circle-user-round','What is your name?')
+        + field('First Name', tinput('John'))
+        + field('Last Name', tinput('Doe'))
+      ),
+      section(
+        question('What is your date of birth?')
+        + tinput('MM/DD/YYYY', {icon:'calendar'})
+      )
+    ])
+  },
+
+  /* 2 — Contact */
+  {
+    step:'Step 2 of 10',
+    title:'How do we reach you?',
+    subtitle:'Your email and phone are how receive updates, reminders, and your app login.',
+    next:'Next',
+    main: qcard([
+      section(
+        qhead('contact-round','What is your email address?')
+        + tinput('example@email.com')
+      ),
+      section(
+        question('What is your mobile phone number?')
+        + tinput('(555) 555-5555')
+        + group('checkbox', [opt('checkbox',"I don't have a mobile phone.",'no-phone-alert')])
+        + cond('no-phone-alert',
+            `<div class="alert">${I('circle-alert')}<div class="alert-text">We can provide you a loaner smartphone for your recovery.</div></div>`
+          )
+      )
+    ])
+  },
+
+  /* 3 — Terms */
+  {
+    step:'Step 3 of 10',
+    title:'An important read before we continue.',
+    subtitle:'These terms cover how your data is used and what to expect from the program.',
+    next:'Next',
+    main: qcard([
+      section(
+        `<div class="terms-box"><h4>Terms and Conditions</h4>${LOREM}</div>`
+        + group('checkbox', [opt('checkbox','I agree to the terms and conditions.')])
+      )
+    ])
+  },
+
+  /* 4 — Home address */
+  {
+    step:'Step 4 of 10',
+    title:'Where are you recovering?',
+    subtitle:'Your home address helps us understand your care setting and send you equipment.',
+    next:'Next',
+    main: qcard([
+      section(
+        qhead('signpost','What is your home address?')
+        + field('Street Address', tinput('Enter street address'))
+        + field('City', tinput('Enter city'))
+        + field('State', select('Select', ['Alabama','Alaska','Arizona','California','Colorado','Florida','New York','Texas','Washington']))
+        + field('Zip Code', tinput('Enter zip code'))
+      )
+    ])
+  },
+
+  /* 5 — Living */
+  {
+    step:'Step 5 of 10',
+    title:'Tell us about your home life.',
+    subtitle:'Knowing your living situation helps your care team tailor support.',
+    next:'Next',
+    main: qcard([
+      section(
+        qhead('house','What is your living situation?')
+        + group('radio', [opt('radio','Home'), opt('radio','Senior Living Center')])
+      ),
+      section(
+        question('Do you live alone?')
+        + group('radio', [opt('radio','Yes'), opt('radio','No','live-with')], true)
+        + cond('live-with',
+            question('Who lives with you?') + subtle('Select all that apply.')
+            + group('checkbox', [opt('checkbox','Spouse/partner'),opt('checkbox','Children'),opt('checkbox','Parent(s)'),opt('checkbox','Other')])
+          )
+      )
+    ])
+  },
+
+  /* 6 — Mobility */
+  {
+    step:'Step 6 of 10',
+    title:'How do you get around at home?',
+    subtitle:'This helps your care team make sure your exercise plan is safe for you.',
+    next:'Next',
+    main: qcard([
+      section(
+        qhead('accessibility','Any walking assistance at home?')
+        + group('radio', [
+            opt('radio','I walk independently.'),
+            opt('radio','I use a <strong>cane</strong>.','falls'),
+            opt('radio','I use a <strong>walker</strong>.','falls'),
+            opt('radio','I use a <strong>wheelchair</strong>.','falls')
+          ])
+        + cond('falls',
+            question('Have you had any falls in the last six (6) months?')
+            + group('radio', [opt('radio','Yes'), opt('radio','No')], true)
+          )
+      )
+    ])
+  },
+
+  /* 7 — Medical */
+  {
+    step:'Step 7 of 10',
+    title:'Your health background.',
+    subtitle:"Your care team needs a quick picture of your existing conditions so they can build a program that's right for you.",
+    next:'Next',
+    main: qcard([
+      section(
+        qhead('stethoscope','Who is your cardiologist?')
+        + tinput('Search by name...', {icon:'search'})
+        + `<div class="q-hint">Can't find yours? We'll follow up to get their details.</div>`
+      ),
+      section(
+        question('Any current medical conditions?') + subtle('Select all that apply.')
+        + group('checkbox', [
+            opt('checkbox','Coronary artery disease'),
+            opt('checkbox','Hypertension (high blood pressure)'),
+            opt('checkbox','Heart failure'),
+            opt('checkbox','Diabetes'),
+            opt('checkbox','High cholesterol'),
+            opt('checkbox','Atrial fibrillation'),
+            opt('checkbox','Pacemaker')
+          ])
+      ),
+      section(
+        question('Are you a smoker?')
+        + group('radio', [opt('radio','Never'), opt('radio','Quit','quit-when packs'), opt('radio','Current','packs')])
+        + cond('quit-when',
+            question('When did you quit?')
+            + tinput('e.g. early 2023')
+            + `<div class="q-hint">Just give your best estimate.</div>`
+          )
+        + cond('packs',
+            question('How many packs per day?')
+            + group('radio', [opt('radio','Less than 1 pack'), opt('radio','1 pack'), opt('radio','More than 1 pack')])
+          )
+      )
+    ])
+  },
+
+  /* 8 — Exercise */
+  {
+    step:'Step 8 of 10',
+    title:"Let's talk about staying active.",
+    subtitle:'No matter your starting point, this helps us understand your baseline. Even a short walk counts.',
+    next:'Next',
+    main: qcard([
+      section(
+        qhead('person-standing','Do you exercise?')
+        + group('radio', [opt('radio','Yes','ex-yes'), opt('radio','No')], true)
+        + cond('ex-yes',
+            question('What types?') + subtle('Select all that apply.')
+            + group('checkbox', [
+                opt('checkbox','Walking'),opt('checkbox','Running'),opt('checkbox','Cycling'),
+                opt('checkbox','Weights / strength training'),opt('checkbox','Yoga'),opt('checkbox','Other')
+              ])
+            + question('How often?')
+            + group('radio', [opt('radio','1–2 times per week'),opt('radio','3–4 times per week'),opt('radio','5 or more times per week')])
+          )
+      ),
+      section(
+        question('How confident are you in your ability to exercise?')
+        + slider(5,'Not confident','Very confident')
+      ),
+      section(
+        question('How motivated are you to exercise?')
+        + slider(5,'Not motivated','Very motivated')
+      )
+    ])
+  },
+
+  /* 9 — Wellbeing */
+  {
+    step:'Step 9 of 10',
+    title:'How are you feeling overall?',
+    subtitle:'These questions help your care team understand your quality of life.',
+    next:'Next',
+    main: qcard([
+      section(
+        qhead('brain','How would you rate your sleep?')
+        + slider(5,'Awful','Great')
+      ),
+      section(
+        question('How would you rate your feeling of social support?')
+        + slider(5,'Very lonely','Strong support system')
+      )
+    ])
+  },
+
+  /* 10 — Devices (Final step) */
+  {
+    step:'Final step',
+    title:'What tech do you have at home?',
+    subtitle:'We will use your smartphone and smartwatch to track your progress.',
+    next:'Submit',
+    main:
+      qcard([
+        section(
+          qhead('smartphone','Do you have a smartphone?')
+          + group('radio', [opt('radio','Yes','sp-yes'), opt('radio','No')], true)
+          + cond('sp-yes',
+              field('What type of smartphone?', group('radio', [opt('radio','iPhone','sp-ios'), opt('radio','Android','sp-android')], true))
+              + cond('sp-ios', field('What model of iPhone?', select('Select',['iPhone 16 Pro Max','iPhone 16 Plus','iPhone 16','iPhone 15','iPhone 14','Older model'])))
+              + cond('sp-android', field('What model of Android?', select('Select',['Samsung Galaxy S24','Samsung Galaxy S23','Google Pixel 9','Google Pixel 8','Other'])))
+            )
+        ),
+        section(
+          question('How comfortable are you using a smartphone?')
+          + slider(5,'Not comfortable','Very comfortable')
+        )
+      ])
+      + qcard([
+        section(
+          qhead('watch','Do you have a smartwatch?')
+          + group('radio', [opt('radio','Yes','sw-yes'), opt('radio','No')], true)
+          + cond('sw-yes',
+              field('What type of smartwatch?', `<div class="select-wrap"><select class="input" data-reveal="sw-model"><option value="" selected disabled hidden>Select</option><option>Apple Watch</option><option>Samsung Galaxy Watch</option><option>Fitbit</option><option>Garmin</option><option>Other</option></select><span class="field-icon">${I('chevron-down')}</span></div>`)
+              + cond('sw-model', `<div class="field"><label class="field-label" data-model-label>What model?</label>${select('Select',['Apple Watch Ultra','Apple Watch Series 10','Apple Watch Series 9','Apple Watch SE'])}</div>`)
+            )
+        ),
+        section(
+          question('How comfortable are you using a smartwatch?')
+          + slider(5,'Not comfortable','Very comfortable')
+        )
+      ])
+      + qcard([
+        section(
+          qhead('laptop','Do you own other devices?') + subtle('Select all, if any, that apply.')
+          + group('checkbox', [
+              opt('checkbox','Tablet'),
+              opt('checkbox','Laptop'),
+              opt('checkbox','Desktop computer'),
+              `<div class="option" data-kind="checkbox" data-exclusive><span class="checkbox"></span><span class="opt-label">I don't have any other devices.</span></div>`
+            ])
+        )
+      ])
+  },
+
+  /* 11 — Confirmation */
+  {
+    confirm:true,
+    next:'Get started',
+    main:
+      `<div class="confirm">`
+      + `<div class="success-ring">${I('check',2.5)}</div>`
+      + `<div class="title">Your account has been created.</div>`
+      + `<div class="subtitle">You've successfully finished setting up your account, and your path to recovery begins now!</div>`
+      + `</div>`
+  }
+];
+
+/* ============================================================
+   Render
+   ============================================================ */
+const statusBar = `
+  <div class="status-bar">
+    <div class="time">9:41</div>
+    <div class="status-icons">
+      <svg width="19" height="13" viewBox="0 0 19 13" fill="#000"><rect x="0" y="8" width="3" height="5" rx="1"/><rect x="5" y="5.5" width="3" height="7.5" rx="1"/><rect x="10" y="3" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="13" rx="1"/></svg>
+      <svg width="18" height="13" viewBox="0 0 18 13" fill="none"><path d="M9 11.5a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8Z" fill="#000"/><path d="M3.2 6.4a8 8 0 0 1 11.6 0" stroke="#000" stroke-width="1.6" stroke-linecap="round"/><path d="M5.6 8.7a4.6 4.6 0 0 1 6.8 0" stroke="#000" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <svg width="28" height="13" viewBox="0 0 28 13" fill="none"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" stroke="#000" stroke-opacity="0.4"/><rect x="2" y="2" width="19" height="9" rx="2" fill="#000"/><path d="M25 4.5v4a2 2 0 0 0 1.2-1.84V6.34A2 2 0 0 0 25 4.5Z" fill="#000" fill-opacity="0.5"/></svg>
+    </div>
+  </div>`;
+
+function footerHTML(s, idx){
+  if(s.confirm || s.next==='Get started'){
+    return `<div class="footer-nav confirm-footer"><button class="btn btn-full" data-next>${s.next} ${I('arrow-right')}</button></div>`;
+  }
+  return `<div class="footer-nav">`
+    + `<button class="btn btn-back" data-back>${I('arrow-left')} Back</button>`
+    + `<button class="btn btn-next" data-next>${s.next} ${I('arrow-right')}</button></div>`;
+}
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = screens.map((s,idx)=>{
+    let bodyInner;
+    if(s.confirm){
+      bodyInner = `<div class="surface" style="background:transparent;padding-top:0;">`
+        + `<div class="main">${s.main}${footerHTML(s,idx)}</div></div>`;
+    } else {
+      bodyInner = `<div class="surface">`
+        + `<div class="page-title"><div class="step-label">${s.step}</div><h1 class="title">${s.title}</h1><p class="subtitle">${s.subtitle}</p></div>`
+        + `<div class="main">${s.main}${footerHTML(s,idx)}</div>`
+        + `</div>`;
+    }
+    return `<div class="screen${idx===0?' active':''}" data-index="${idx}">`
+      + statusBar
+      + `<div class="scroll"><div class="content">`
+      + `<header class="brand"><div class="logo">Relevais</div><div class="tagline">Guiding your recovery</div></header>`
+      + `<div class="body">${bodyInner}</div>`
+      + `</div></div>`
+      + `<div class="home-indicator"></div>`
+      + `</div>`;
+  }).join('');
+  initInteractions();
+}
+
+/* ============================================================
+   Interactivity
+   ============================================================ */
+let current = 0;
+function show(idx){
+  const all = document.querySelectorAll('.screen');
+  if(idx<0 || idx>=all.length) return;
+  all[current].classList.remove('active');
+  current = idx;
+  all[current].classList.add('active');
+  // reset scroll position
+  const sc = all[current].querySelector('.scroll');
+  if(sc) sc.scrollTop = 0;
+}
+
+function setReveal(id, open){
+  const el = document.getElementById(id);
+  if(el) el.classList.toggle('open', open);
+}
+
+function initInteractions(){
+  // Option groups (radio/checkbox)
+  document.querySelectorAll('.opt-group').forEach(grp=>{
+    const multi = grp.dataset.mode === 'multi';
+    grp.querySelectorAll('.option').forEach(option=>{
+      option.addEventListener('click', ()=>{
+        if(multi){
+          // exclusive checkbox handling
+          if(option.hasAttribute('data-exclusive')){
+            const willSelect = !option.classList.contains('selected');
+            grp.querySelectorAll('.option').forEach(o=>o.classList.remove('selected'));
+            option.classList.toggle('selected', willSelect);
+          } else {
+            option.classList.toggle('selected');
+            const ex = grp.querySelector('.option[data-exclusive]');
+            if(ex) ex.classList.remove('selected');
+          }
+          // checkbox-driven reveals (e.g. loaner-phone alert)
+          if(option.dataset.reveal){
+            option.dataset.reveal.split(' ').forEach(id=>setReveal(id, option.classList.contains('selected')));
+          }
+        } else {
+          // single select: clear all reveals owned by this group, then select
+          grp.querySelectorAll('.option[data-reveal]').forEach(o=>{
+            o.dataset.reveal.split(' ').forEach(id=>setReveal(id,false));
+          });
+          grp.querySelectorAll('.option').forEach(o=>o.classList.remove('selected'));
+          option.classList.add('selected');
+          if(option.dataset.reveal){
+            option.dataset.reveal.split(' ').forEach(id=>setReveal(id,true));
+          }
+        }
+      });
+    });
+  });
+
+  // Selects: colour + change-driven reveals (smartwatch type -> model)
+  document.querySelectorAll('select.input').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      sel.classList.toggle('has-value', !!sel.value);
+      if(sel.dataset.reveal){
+        setReveal(sel.dataset.reveal, !!sel.value);
+        // update dependent model label e.g. "What model of Apple Watch?"
+        const target = document.getElementById(sel.dataset.reveal);
+        if(target){
+          const lbl = target.querySelector('[data-model-label]');
+          if(lbl) lbl.textContent = `What model of ${sel.value}?`;
+        }
+      }
+    });
+  });
+
+  // Sliders
+  document.querySelectorAll('.slider').forEach(sl=>{
+    const input = sl.querySelector('input[type=range]');
+    const val = sl.querySelector('.val');
+    const update = ()=>{
+      const min=+input.min, max=+input.max, v=+input.value;
+      const pct = ((v-min)/(max-min))*100;
+      // keep thumb pill within the track bounds
+      const clamped = Math.max(7, Math.min(93, pct));
+      sl.style.setProperty('--pct', clamped + '%');
+      sl.querySelector('.slider-fill').style.width = pct + '%';
+      val.textContent = v;
+    };
+    input.addEventListener('input', update);
+    update();
+  });
+
+  // Navigation
+  document.querySelectorAll('[data-next]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(current === screens.length-1){ show(0); }   // "Get started" loops to start
+      else show(current+1);
+    });
+  });
+  document.querySelectorAll('[data-back]').forEach(btn=>{
+    btn.addEventListener('click', ()=> show(current-1));
+  });
+
+  // Keyboard arrows for presenting
+  document.addEventListener('keydown', (e)=>{
+    if(e.key==='ArrowRight') show(current+1);
+    if(e.key==='ArrowLeft') show(current-1);
+  });
+}
+
+render();
+</script>
+</body>
+</html>
