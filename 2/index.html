@@ -1,0 +1,1799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Relevais" />
+<title>Relevais Health — Patient Onboarding Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --primary:#0c3b6e;
+    --primary-light:#6497cd;
+    --primary-50:#e3f1ff;
+    --primary-foreground:#fafaf9;
+    --foreground:#1c1917;
+    --foreground-muted:#79716b;
+    --neutral-foreground:#44403b;
+    --neutral:#f5f5f4;
+    --neutral-200:#e7e5e4;
+    --border:#d6d3d1;
+    --input-border:#d6d3d1;
+    --background:#ffffff;
+    --surface:rgba(250,250,249,0.6);
+    --page-bg:#fafaf9;
+    --select-blue:#e9f2fc;
+    --success:#6ba539;
+    --warning-bg:#fbf2d6;
+    --warning-fg:#8a6a18;
+    --error-bg:#fbe6e6;
+    --error-fg:#b42318;
+    --primary-lightest:#bbdcff;
+    --warning-100:#faf2cb;
+    --warning-700:#a95714;
+    --warning-50:#fefbec;
+    --serif:'Source Serif 4', Georgia, serif;
+    --sans:'Instrument Sans', -apple-system, system-ui, sans-serif;
+    --statusbar-h:54px;
+  }
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;padding:0;
+    overscroll-behavior:none;
+    -webkit-text-size-adjust:100%;text-size-adjust:100%;
+  }
+  body{
+    font-family:var(--sans);
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #eef4fb 0%, rgba(238,244,251,0) 60%),
+      #eceef1;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:40px 16px 60px;
+    color:var(--foreground);
+  }
+
+  .stage-caption{
+    font-family:var(--sans);
+    color:#6b7280;
+    font-size:13px;
+    letter-spacing:.02em;
+    margin-bottom:22px;
+    text-align:center;
+  }
+  .stage-caption b{color:#374151;font-weight:600;}
+
+  /* ---------- Prototype section nav (desktop only, fixed top-left) ---------- */
+  .proto-nav{
+    position:fixed;top:16px;left:16px;z-index:50;
+    display:flex;flex-direction:column;gap:3px;
+    background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:5px;
+    box-shadow:0 6px 18px -6px rgba(15,40,75,.18);
+  }
+  .proto-nav button{
+    border:none;background:transparent;cursor:pointer;text-align:left;
+    font-family:var(--sans);font-weight:600;font-size:12px;color:#5b6573;
+    padding:6px 10px;border-radius:8px;white-space:nowrap;
+    transition:background .12s, color .12s;
+  }
+  .proto-nav button:hover:not(:disabled){background:#f1f4f8;color:#374151;}
+  .proto-nav button.active{background:var(--primary);color:#fff;}
+  .proto-nav button:disabled{opacity:.4;cursor:not-allowed;}
+
+  /* ---------- Phone shell ---------- */
+  .phone{
+    position:relative;
+    width:402px;
+    height:874px;
+    max-height:calc(100vh - 80px);
+    border-radius:46px;
+    background:#000;
+    padding:5px;
+    box-shadow:0 40px 90px -30px rgba(15,40,75,.45), 0 12px 30px -12px rgba(0,0,0,.25);
+  }
+  .phone-screen{
+    position:relative;
+    width:100%;height:100%;
+    border-radius:42px;
+    overflow:hidden;
+    background:var(--page-bg);
+  }
+  /* Dynamic Island — desktop frame only (hidden in full-bleed mobile) */
+  .phone-screen::before{
+    content:"";
+    position:absolute;top:11px;left:50%;transform:translateX(-50%);
+    width:118px;height:34px;border-radius:20px;background:#000;
+    z-index:40;pointer-events:none;
+  }
+
+  /* ---------- Screen ---------- */
+  .screen{
+    position:absolute;inset:0;
+    display:none;
+    background:linear-gradient(180deg, rgba(245,250,255,0) 0%, rgb(245,250,255) 100%), var(--page-bg);
+  }
+  .screen.active{display:block;}
+
+  .scroll{
+    position:absolute;inset:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .scroll::-webkit-scrollbar{display:none;}
+
+  .content{
+    min-height:100%;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* ---------- Status bar ---------- */
+  .status-bar{
+    position:absolute;top:0;left:0;right:0;height:54px;z-index:20;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 22px 0;
+    pointer-events:none;
+    background:linear-gradient(180deg, rgba(247,250,253,0.92) 0%, rgba(247,250,253,0.78) 55%, rgba(247,250,253,0) 100%);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+  }
+  .status-bar .time{font-weight:600;font-size:16px;color:#000;letter-spacing:.01em;}
+  .status-icons{display:flex;align-items:center;gap:7px;}
+  .status-icons svg{display:block;}
+
+  /* ---------- Home indicator ---------- */
+  .home-indicator{
+    position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+    width:140px;height:5px;border-radius:100px;background:#000;z-index:20;
+  }
+
+  /* ---------- Browser chrome (web onboarding only) ---------- */
+  .browser-bar{
+    position:absolute;top:var(--statusbar-h);left:0;right:0;z-index:19;
+    height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;
+    background:rgba(248,248,250,0.96);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid rgba(0,0,0,0.07);
+  }
+  .browser-bar .bb-icon{flex:none;display:flex;align-items:center;justify-content:center;color:#0a84ff;}
+  .browser-bar .bb-icon svg{width:19px;height:19px;}
+  .browser-bar .bb-aa{color:#3c3c43;font-weight:600;font-size:13px;line-height:1;align-items:flex-end;}
+  .browser-bar .bb-aa span{font-size:17px;}
+  .url-pill{
+    flex:1;min-width:0;height:34px;border-radius:11px;background:#e4e4e9;
+    display:flex;align-items:center;justify-content:center;gap:6px;padding:0 12px;
+  }
+  .url-pill .bb-lock{display:flex;color:#6b6b70;}
+  .url-pill .bb-lock svg{width:12px;height:12px;}
+  .url-pill .url{font-size:15px;font-weight:400;color:#1c1c1e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* Unify the status bar with the browser chrome on web screens */
+  .screen.web .status-bar{background:rgba(248,248,250,0.97);}
+  /* Push page content below status bar + browser bar (with breathing room) */
+  .screen.web header.brand{padding-top:calc(var(--statusbar-h) + 76px);}
+
+  /* ---------- Header ---------- */
+  header.brand{
+    padding:64px 24px 18px;
+    display:flex;flex-direction:column;gap:6px;align-items:flex-start;
+  }
+  .logo{
+    font-family:var(--serif);
+    font-weight:700;
+    font-size:27px;
+    line-height:1;
+    color:var(--primary);
+    letter-spacing:-.01em;
+  }
+  .tagline{
+    font-family:var(--serif);
+    font-weight:500;
+    font-size:18px;
+    line-height:1.2;
+    color:var(--primary-light);
+    letter-spacing:-.01em;
+  }
+
+  /* ---------- Body / surface ---------- */
+  .body{flex:1;display:flex;flex-direction:column;padding:0 8px 26px;}
+  .surface{
+    flex:1;display:flex;flex-direction:column;gap:18px;
+    background:var(--surface);
+    border-radius:12px;
+    padding:6px 8px 14px;
+  }
+  .page-title{display:flex;flex-direction:column;gap:7px;padding:6px 8px 0;}
+  .step-label{font-weight:500;font-size:12px;color:var(--primary-light);letter-spacing:.01em;}
+  .title{
+    font-family:var(--serif);font-weight:600;font-size:36px;line-height:1.15;
+    color:var(--foreground);letter-spacing:-.015em;margin:0;
+  }
+  .subtitle{
+    font-weight:400;font-size:17px;line-height:1.4;color:var(--foreground-muted);margin:0;
+  }
+
+  .main{flex:1;display:flex;flex-direction:column;gap:28px;}
+
+  /* ---------- Question card ---------- */
+  .qcard{
+    background:var(--background);
+    border-radius:22px;
+    box-shadow:0 4px 15px rgba(38,38,38,.06);
+    padding:16px 0 20px;
+    display:flex;flex-direction:column;gap:22px;
+  }
+  .qcard-section{padding:0 16px;display:flex;flex-direction:column;gap:14px;}
+  .qcard-divider{height:1px;background:var(--neutral);width:100%;}
+
+  .icon-badge{
+    width:32px;height:32px;border-radius:999px;background:var(--primary-50);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--primary-light);
+  }
+  .icon-badge svg{width:16px;height:16px;}
+
+  .q-head{display:flex;flex-direction:column;gap:8px;}
+  .question{
+    font-family:var(--serif);font-weight:500;font-size:20px;line-height:1.2;
+    color:var(--neutral-foreground);letter-spacing:-.01em;
+  }
+  .q-subtle{font-weight:400;font-size:13px;color:var(--foreground-muted);margin-top:-8px;}
+  .q-hint{font-weight:400;font-size:13px;color:var(--foreground-muted);}
+
+  /* ---------- Fields / inputs ---------- */
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field-label{font-weight:600;font-size:16px;color:var(--neutral-foreground);}
+
+  .input{
+    width:100%;height:48px;border:1px solid var(--input-border);border-radius:8px;
+    background:var(--background);
+    padding:8px 14px 8px 16px;
+    font-family:var(--sans);font-weight:500;font-size:14px;color:var(--foreground);
+    outline:none;
+  }
+  .input::placeholder{color:var(--foreground-muted);font-weight:500;}
+  .input:focus{border-color:var(--primary-light);box-shadow:0 0 0 3px rgba(100,151,205,.18);}
+
+  .input-wrap{position:relative;}
+  .input-wrap .input{padding-right:42px;}
+  .input-wrap .field-icon{
+    position:absolute;right:14px;top:50%;transform:translateY(-50%);
+    color:var(--neutral-foreground);pointer-events:none;
+  }
+  .input-wrap .field-icon svg{width:18px;height:18px;}
+
+  .select-wrap{position:relative;}
+  select.input{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:42px;color:var(--foreground-muted);}
+  select.input.has-value{color:var(--foreground);}
+  .select-wrap .field-icon{
+    position:absolute;right:14px;top:50%;transform:translateY(-50%);
+    color:var(--neutral-foreground);pointer-events:none;
+  }
+  .select-wrap .field-icon svg{width:18px;height:18px;}
+
+  /* ---------- Options (radio / checkbox) ---------- */
+  .opt-group{display:flex;flex-direction:column;gap:10px;}
+  .opt-group.segmented{flex-direction:row;gap:12px;}
+  .opt-group.segmented .option{flex:1;}
+
+  .option{
+    display:flex;align-items:center;gap:11px;
+    border:1px solid var(--border);border-radius:10px;
+    background:var(--background);
+    padding:13px 16px;cursor:pointer;
+    transition:background .12s ease, border-color .12s ease;
+    user-select:none;
+  }
+  .option:hover{border-color:#c4c0bc;}
+  .option .opt-label{font-weight:400;font-size:16px;color:var(--foreground);line-height:1.3;}
+  .option .opt-label strong{font-weight:700;}
+  .option.selected{background:var(--select-blue);border-color:var(--primary-light);}
+
+  .radio{
+    width:20px;height:20px;border-radius:50%;border:1.5px solid #c4beb8;
+    flex:none;position:relative;background:#fff;transition:border-color .12s;
+  }
+  .option.selected .radio{border-color:var(--primary);border-width:2px;}
+  .option.selected .radio::after{
+    content:"";position:absolute;inset:0;margin:auto;width:9px;height:9px;border-radius:50%;background:var(--primary);
+  }
+
+  .checkbox{
+    width:20px;height:20px;border-radius:5px;border:1.5px solid #c4beb8;
+    flex:none;position:relative;background:#fff;transition:all .12s;
+  }
+  .option.selected .checkbox{background:var(--primary);border-color:var(--primary);}
+  .option.selected .checkbox::after{
+    content:"";position:absolute;left:50%;top:46%;width:5px;height:10px;
+    border:solid #fff;border-width:0 2px 2px 0;
+    transform:translate(-50%,-50%) rotate(45deg);
+  }
+
+  /* ---------- Inline alert ---------- */
+  .alert{
+    display:flex;align-items:flex-start;gap:9px;
+    background:var(--warning-bg);border-radius:10px;padding:12px 14px;
+  }
+  .alert svg{width:18px;height:18px;color:var(--warning-fg);flex:none;margin-top:1px;}
+  .alert-text{font-weight:600;font-size:14px;line-height:1.35;color:var(--warning-fg);}
+  /* Red error variant (ineligibility) */
+  .alert.error{background:var(--error-bg);}
+  .alert.error svg{color:var(--error-fg);}
+  .alert.error .alert-text{color:var(--error-fg);}
+
+  /* ---------- Conditional reveal ---------- */
+  .conditional{display:none;flex-direction:column;gap:14px;}
+  .conditional.open{display:flex;animation:reveal .22s ease;}
+  @keyframes reveal{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+
+  /* ---------- Slider ---------- */
+  .slider-wrap{display:flex;flex-direction:column;gap:9px;margin-top:2px;}
+  .slider{position:relative;height:30px;}
+  .slider input[type=range]{
+    position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;z-index:3;
+  }
+  .slider-track{
+    position:absolute;top:50%;left:0;right:0;height:6px;transform:translateY(-50%);
+    background:var(--neutral-200);border-radius:999px;overflow:hidden;
+  }
+  .slider-fill{height:100%;background:var(--primary);border-radius:999px;width:var(--pct,50%);}
+  .slider-thumb{
+    position:absolute;top:50%;left:var(--pct,50%);transform:translate(-50%,-50%);
+    height:28px;min-width:46px;padding:0 7px;
+    background:#fff;border:1px solid var(--border);border-radius:999px;
+    box-shadow:0 1px 4px rgba(0,0,0,.14);
+    display:flex;align-items:center;justify-content:center;gap:5px;
+    font-weight:600;font-size:14px;color:var(--neutral-foreground);z-index:2;
+  }
+  .slider-thumb .chev{color:#c4beb8;font-size:13px;line-height:1;}
+  .slider-labels{display:flex;justify-content:space-between;font-weight:400;font-size:13px;color:var(--foreground-muted);}
+
+  /* ---------- Terms scroll box ---------- */
+  .terms-box{
+    border:1px solid var(--border);border-radius:14px;background:#fff;
+    padding:16px;
+  }
+  .terms-box h4{font-family:var(--serif);font-weight:600;font-size:16px;margin:0 0 10px;color:var(--neutral-foreground);}
+  .terms-box p{font-size:13px;line-height:1.55;color:var(--foreground-muted);margin:0 0 12px;}
+
+  /* ---------- Footer nav (in-flow, sits below each screen's content) ---------- */
+  .footer-nav{display:flex;gap:16px;align-items:center;margin-top:6px;}
+  .btn:disabled{opacity:.4;cursor:default;}
+  .btn-back:disabled:hover{background:var(--primary-foreground);}
+  .btn{
+    border:none;cursor:pointer;font-family:var(--sans);font-weight:600;font-size:16px;
+    border-radius:999px;padding:14px 20px;display:flex;align-items:center;justify-content:center;gap:7px;
+    transition:filter .12s, background .12s;
+  }
+  .btn svg{width:16px;height:16px;}
+  .btn-back{
+    background:var(--primary-foreground);border:1px solid var(--border);color:var(--neutral-foreground);
+    width:120px;flex:none;padding:13px 16px;
+  }
+  .btn-back:hover{background:#f1efed;}
+  .btn-next{background:var(--primary);color:var(--primary-foreground);flex:1;}
+  .btn-next:hover{filter:brightness(1.08);}
+  .btn-full{background:var(--primary);color:var(--primary-foreground);width:100%;}
+  .btn-full:hover{filter:brightness(1.08);}
+
+  /* ---------- Confirmation ---------- */
+  .confirm{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:18px;padding:24px 16px 0;}
+  .success-ring{
+    width:96px;height:96px;border-radius:50%;border:4px solid var(--success);
+    display:flex;align-items:center;justify-content:center;margin-bottom:6px;
+  }
+  .success-ring svg{width:46px;height:46px;color:var(--success);}
+  .party-icon{margin-bottom:8px;position:relative;}
+  .party-icon svg{width:60px;height:60px;color:var(--success);}
+  .confirm .title{font-size:36px;}
+  .confirm-footer{padding:0 8px;}
+
+  /* ---------- Subtle celebrate (milestone + account-created) ---------- */
+  .confetti{position:absolute;top:50%;left:50%;width:7px;height:7px;border-radius:2px;background:var(--c);opacity:0;pointer-events:none;}
+  .confirm.celebrating .party-icon{animation:pop-in .6s cubic-bezier(.2,.8,.3,1.5) both;}
+  .confirm.celebrating .confetti{animation:confetti-burst .75s ease-out var(--d,0s) both;}
+  .confirm.celebrating .success-ring{animation:pop-in .55s cubic-bezier(.2,.8,.3,1.5) both;}
+  .confirm.celebrating .success-ring svg{animation:check-pop .4s ease .2s both;}
+  @keyframes pop-in{0%{opacity:0;transform:scale(.4) rotate(-10deg);}60%{opacity:1;transform:scale(1.12) rotate(4deg);}100%{opacity:1;transform:scale(1) rotate(0);}}
+  @keyframes check-pop{0%{opacity:0;transform:scale(.3);}100%{opacity:1;transform:scale(1);}}
+  @keyframes confetti-burst{0%{opacity:0;transform:translate(-50%,-50%) scale(0);}25%{opacity:1;}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1) rotate(160deg);}}
+
+  /* ---------- Splash (native app intro carousel) ---------- */
+  .splash{flex:1;display:flex;flex-direction:column;gap:16px;padding:6px 8px 0;}
+  .splash-card{
+    flex:1;min-height:420px;background:var(--background);border-radius:22px;
+    box-shadow:0 4px 15px rgba(38,38,38,.06);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--foreground-muted);font-size:15px;
+  }
+  .carousel-dots{display:flex;justify-content:center;gap:8px;padding:2px 0;}
+  .carousel-dots .dot{width:8px;height:8px;border-radius:50%;background:var(--neutral-200);}
+  .carousel-dots .dot.active{background:var(--primary-light);}
+
+  /* ---------- Native app: leading-icon input ---------- */
+  .input-wrap.lead .input{padding-left:42px;}
+  .field-icon-lead{left:14px;right:auto;}
+
+  /* ---------- Verification code boxes ---------- */
+  .code-boxes{display:flex;gap:8px;}
+  .code-box{
+    flex:1;width:0;height:52px;border:1px solid var(--input-border);border-radius:10px;background:#fff;
+    text-align:center;padding:0;outline:none;-webkit-appearance:none;
+    font-family:var(--sans);font-weight:600;font-size:20px;color:var(--foreground);
+  }
+  .code-box::placeholder{color:var(--border);font-weight:500;}
+  .code-box:focus{border-color:var(--primary-light);box-shadow:0 0 0 3px rgba(100,151,205,.18);}
+
+  /* ---------- iOS push notification (floating banner overlay) ---------- */
+  .ios-notif{
+    position:absolute;top:calc(var(--statusbar-h) - 4px);left:10px;right:10px;z-index:30;
+    display:flex;align-items:center;gap:10px;
+    background:rgba(250,250,252,0.72);
+    backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);
+    border:0.5px solid rgba(0,0,0,0.06);border-radius:20px;padding:11px 13px;
+    box-shadow:0 14px 34px -10px rgba(0,0,0,.30);
+    animation:notifDrop .5s cubic-bezier(.2,.85,.25,1) both;
+    transition:transform .32s cubic-bezier(.4,0,.2,1), opacity .3s ease;
+  }
+  @keyframes notifDrop{from{opacity:0;transform:translateY(-130%);}to{opacity:1;transform:none;}}
+  .ios-notif.gone{transform:translateY(-150%);opacity:0;pointer-events:none;}
+  .ios-notif-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(180deg,#5af07a,#1faa3e);color:#fff;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 1px 3px rgba(0,0,0,.18);}
+  .ios-notif-icon svg{width:21px;height:21px;}
+  .ios-notif-body{flex:1;min-width:0;}
+  .ios-notif-top{display:flex;justify-content:space-between;align-items:baseline;}
+  .ios-notif-title{font-size:14px;font-weight:700;color:#1c1c1e;}
+  .ios-notif-time{font-size:12px;font-weight:500;color:#8a8a8e;flex:none;margin-left:8px;}
+  .ios-notif-text{font-size:14px;line-height:1.3;color:#1c1c1e;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  /* ---------- Simulated iOS keyboard (desktop only) ---------- */
+  .ios-kb{
+    position:absolute;left:0;right:0;bottom:0;z-index:60;
+    background:#d1d4db;
+    padding:8px 5px calc(10px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;gap:8px;
+    transform:translateY(115%);transition:transform .28s cubic-bezier(.2,.85,.25,1);
+    user-select:none;
+    font-family:-apple-system,BlinkMacSystemFont,var(--sans);
+  }
+  .ios-kb.up{transform:none;}
+  .kb-row{display:flex;gap:6px;justify-content:center;}
+  .kb-key{
+    flex:1;height:42px;background:#fff;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;font-weight:400;color:#000;cursor:pointer;
+    box-shadow:0 1px 0 rgba(0,0,0,.28);
+  }
+  .kb-key:active{background:#b4bac6;}
+  .kb-key.special{background:#abb1bd;font-size:14px;}
+  .kb-key.wide{flex:1.5;}
+  .kb-key.space{flex:5;font-size:15px;}
+  .kb-key.return{flex:2;background:#abb1bd;font-size:15px;}
+  .ios-kb.numeric{padding-left:48px;padding-right:48px;gap:10px;}
+  .ios-kb.numeric .kb-key{height:46px;font-size:23px;font-weight:500;}
+  .ios-kb.numeric .kb-key.blank{background:transparent;box-shadow:none;cursor:default;}
+  @media(max-width:460px){ .ios-kb{display:none!important;} }
+
+  /* ---------- iOS system permission alert (auto-prompt) ---------- */
+  .ios-alert-overlay{
+    position:absolute;inset:0;z-index:35;
+    display:flex;align-items:center;justify-content:center;padding:0 36px;
+    background:rgba(18,18,28,0.28);
+    opacity:0;visibility:hidden;transition:opacity .25s ease;
+  }
+  .ios-alert-overlay.show{opacity:1;visibility:visible;}
+  .ios-alert{
+    width:100%;max-width:272px;background:#fff;border-radius:20px;
+    padding:20px 16px 14px;text-align:center;
+    box-shadow:0 24px 60px -12px rgba(0,0,0,.45);
+    transform:scale(.9);opacity:0;
+    transition:transform .26s cubic-bezier(.2,.9,.3,1.25), opacity .2s ease;
+  }
+  .ios-alert-overlay.show .ios-alert{transform:scale(1);opacity:1;}
+  .ios-alert-title{font-family:var(--sans);font-weight:700;font-size:16px;line-height:1.3;color:#1c1c1e;margin-bottom:6px;}
+  .ios-alert-body{font-family:var(--sans);font-size:13.5px;line-height:1.4;color:#3c3c43;margin-bottom:16px;}
+  .ios-alert-btns{display:flex;gap:10px;}
+  .ios-alert-btn{flex:1;border:none;cursor:pointer;font-family:var(--sans);font-weight:600;font-size:15px;padding:11px 0;border-radius:18px;}
+  .ios-alert-btn.secondary{background:#eef0f3;color:var(--primary);}
+  .ios-alert-btn.primary{background:var(--primary);color:#fff;}
+
+  /* ---------- Bottom sheet (smartwatch sync) ---------- */
+  .sheet-overlay{
+    position:absolute;inset:0;z-index:40;
+    display:flex;align-items:flex-end;justify-content:center;
+    background:rgba(18,18,28,0.28);
+    opacity:0;visibility:hidden;
+    transition:opacity .28s ease, visibility 0s linear .3s;   /* on close: stay visible until the slide-down finishes */
+  }
+  .sheet-overlay.show{opacity:1;visibility:visible;transition:opacity .28s ease, visibility 0s;}
+  .sheet{
+    width:100%;background:#fff;border-radius:24px 24px 0 0;
+    padding:8px 24px calc(20px + env(safe-area-inset-bottom));
+    transform:translateY(100%);transition:transform .3s cubic-bezier(.2,.85,.25,1);
+    display:flex;flex-direction:column;
+  }
+  .sheet-overlay.show .sheet{transform:none;}
+  .sheet-grab{width:36px;height:5px;border-radius:99px;background:var(--border);margin:0 auto 4px;}
+  .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:8px 0 12px;border-bottom:1px solid var(--neutral);}
+  .sheet-title{font-family:var(--sans);font-weight:600;font-size:16px;color:var(--neutral-foreground);}
+  .sheet-close{border:none;background:transparent;cursor:pointer;color:var(--foreground-muted);padding:2px;display:flex;}
+  .sheet-close svg{width:20px;height:20px;}
+  .sheet-body{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:40px 0 32px;}
+  .sheet-status{font-family:var(--sans);font-weight:700;font-size:18px;color:var(--neutral-foreground);margin-top:10px;}
+  .sheet-sub{font-size:14px;color:var(--foreground-muted);}
+  .sheet-spinner{width:40px;height:40px;color:var(--primary-light);display:flex;animation:spin .8s linear infinite;}
+  .sheet-spinner svg{width:40px;height:40px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .sheet-check{color:var(--primary-light);display:flex;}
+  .sheet-check svg{width:40px;height:40px;}
+  .sheet-cancel{width:100%;border:none;cursor:pointer;background:#eef0f3;color:var(--neutral-foreground);font-family:var(--sans);font-weight:600;font-size:16px;padding:14px 0;border-radius:999px;}
+  /* Scheduling sheet (left-aligned date picker) */
+  .sched-sheet-body{display:flex;flex-direction:column;padding-top:8px;}
+  .sched-title{font-family:var(--serif);font-weight:600;font-size:24px;letter-spacing:-.015em;color:var(--neutral-foreground);margin:0 0 8px;}
+  .sheet-chip{display:inline-flex;align-self:flex-start;align-items:center;gap:6px;background:var(--neutral);border-radius:999px;padding:6px 12px 6px 10px;font-size:14px;font-weight:500;color:var(--neutral-foreground);margin-bottom:24px;}
+  .sheet-chip svg{width:13px;height:13px;color:var(--neutral-foreground);}
+  .sched-divider{height:1px;background:var(--neutral);margin-bottom:24px;}
+  .sched-label{font-weight:500;font-size:16px;color:var(--neutral-foreground);}
+  .sched-sub{font-weight:400;font-size:14px;line-height:1.55;color:var(--foreground-muted);margin:2px 0 32px;}
+  .date-list{display:flex;flex-direction:column;gap:8px;margin-bottom:32px;}
+  .date-opt{width:100%;border:1px solid var(--border);border-radius:999px;background:#fff;height:48px;padding:0;font-family:var(--sans);font-weight:600;font-size:16px;color:var(--neutral-foreground);text-align:center;cursor:pointer;transition:border-color .12s;}
+  .date-opt:hover{border-color:var(--primary-light);}
+  /* scheduled day ring + booked call + Upcoming Schedule */
+  .day-dot.ringed{box-shadow:inset 0 0 0 1.5px #b9b3ad;}   /* scheduled day marker — grey */
+  .pill.blue{background:var(--select-blue);color:var(--primary);}
+  #upcoming-block{display:flex;flex-direction:column;gap:16px;}
+  .upcoming-pad{padding:12px 24px 0;}                          /* Figma: pt-12, px-24 */
+  #upcoming-block .section-head{margin-top:0;padding-bottom:6px;}
+  .upcoming{display:flex;flex-direction:column;}
+  .upcoming-date{font-size:12px;font-weight:500;color:var(--foreground-muted);padding-top:16px;}
+  .upcoming-row{display:flex;align-items:center;gap:6px;padding:16px 0;}
+  .up-ring{width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #b9b3ad;flex:none;}  /* same as date-strip ring, grey */
+  .up-time{font-weight:500;font-size:14px;color:var(--foreground-muted);}
+  .up-name{flex:1;font-weight:600;font-size:14px;color:var(--neutral-foreground);}
+  .up-resched{display:flex;align-items:center;gap:4px;border:none;background:transparent;color:var(--primary-light);font-weight:600;font-size:14px;cursor:pointer;font-family:var(--sans);}
+  .up-resched svg{width:12px;height:12px;}
+  /* Surveys sheet */
+  .surveys-body{display:flex;flex-direction:column;padding-top:10px;}
+  .surveys-intro{font-size:13.5px;line-height:1.4;color:var(--foreground-muted);margin:2px 0 14px;}
+  .survey-list{display:flex;flex-direction:column;margin-bottom:16px;}
+  .survey-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;}
+  .survey-row + .survey-row{border-top:1px solid var(--neutral);}
+  .survey-name{font-weight:700;font-size:14px;color:var(--neutral-foreground);}
+  .survey-meta{font-size:12px;color:var(--foreground-muted);margin-top:2px;}
+
+  /* ---------- Setup hub ---------- */
+  .app-bar{
+    display:flex;align-items:center;gap:8px;
+    padding:60px 20px 24px;
+  }
+  .app-bar-side{width:32px;flex:none;}                 /* balances the info icon so the logo stays centered */
+  .app-bar-logo{flex:1;display:flex;justify-content:center;color:var(--primary);}
+  .logo-svg{display:block;width:auto;}
+  .app-bar-logo .logo-svg{height:24px;}
+  .logo .logo-svg{height:26px;}
+  .app-bar-info{width:32px;height:32px;flex:none;display:flex;align-items:center;justify-content:center;border:none;background:transparent;color:var(--primary-light);cursor:pointer;padding:0;}
+  .app-bar-info svg{width:24px;height:24px;}
+
+  .hub{display:flex;flex-direction:column;gap:16px;padding:8px 8px 8px;}
+  .hub-titlewrap{display:flex;flex-direction:column;gap:2px;padding:0 8px;}
+  .remaining{display:flex;flex-direction:column;gap:12px;margin:12px 0;}
+  #remaining-block{display:flex;flex-direction:column;gap:16px;}
+  #remaining-block.removed{opacity:0;transition:opacity .3s ease;}   /* whole section clears once synced */
+  .need{display:flex;flex-direction:column;gap:12px;}
+  .need.removed{opacity:0;transition:opacity .25s ease;}   /* fades out, then display:none via JS */
+  .hub-group{display:flex;flex-direction:column;gap:12px;}   /* rows whose divider stays inset */
+  .hub-eyebrow{font-family:var(--serif);font-weight:600;font-size:20px;line-height:1.2;color:var(--primary-light);letter-spacing:-.015em;}
+  .hub-title{font-family:var(--serif);font-weight:600;font-size:36px;line-height:1.2;color:var(--foreground);margin:0 0 2px;letter-spacing:-.015em;}
+
+  .bar-banner{display:flex;align-items:center;gap:8px;border-radius:12px;padding:12px 16px;font-weight:500;font-size:12px;line-height:1.4;}
+  .bar-banner svg{width:16px;height:16px;flex:none;}
+  .bar-banner.amber{background:var(--warning-100);color:var(--warning-700);}
+  .bar-banner.green{background:#e3f4e1;color:#3f7a2e;}
+  .bar-banner.soft{align-items:flex-start;}
+  .lock-badge{width:32px;height:32px;border-radius:7px;background:var(--warning-50);color:var(--warning-700);display:flex;align-items:center;justify-content:center;flex:none;}
+  .lock-badge svg{width:16px;height:16px;}
+
+  .date-strip{display:flex;gap:4px;justify-content:space-between;}
+  .day{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;border-radius:12px;}
+  .day-d{font-size:12px;font-weight:500;color:var(--foreground-muted);}
+  .day-n{font-size:18px;font-weight:600;color:var(--neutral-foreground);}
+  .day.active{background:var(--primary-lightest);}
+  .day.active .day-d{color:var(--neutral-foreground);}
+  .day.active .day-n{color:var(--foreground);}
+  .day-dot{width:8px;height:8px;border-radius:50%;}            /* gap for future event circles */
+
+  /* One white card wraps everything below the page title */
+  .hub-card{
+    background:var(--background);border-radius:22px;
+    box-shadow:0 4px 15px rgba(38,38,38,.06);
+    display:flex;flex-direction:column;gap:16px;padding:16px 0;overflow:hidden;
+  }
+  .hub-pad{padding:0 16px;}
+  .hub-div{height:1px;background:var(--neutral);}              /* hairline section separator */
+  /* Schedule = a light-blue sub-card; other items are plain rows */
+  .schedule-card{display:flex;align-items:flex-start;gap:12px;background:var(--primary-50);border-radius:12px;padding:12px 16px;}
+  .hub-row{display:flex;align-items:flex-start;gap:8px;}
+  .task-ico{width:32px;height:32px;border-radius:8px;background:var(--neutral);color:var(--neutral-foreground);display:flex;align-items:center;justify-content:center;flex:none;}
+  .task-ico svg{width:16px;height:16px;}
+  .task-ico.lightest{background:var(--primary-lightest);color:var(--primary);}
+  .task-ico.soft{background:var(--primary-foreground);color:var(--foreground-muted);}
+  .task-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .task-h{font-weight:600;font-size:14px;line-height:1.4;color:var(--neutral-foreground);}
+  .task-s{font-size:12px;line-height:1.4;color:var(--foreground-muted);}
+  .schedule-card .task-s{color:var(--primary-light);}
+  .pill{border:none;cursor:pointer;font-family:var(--sans);font-weight:600;font-size:14px;height:32px;border-radius:999px;padding:0 14px;flex:none;white-space:nowrap;display:flex;align-items:center;align-self:center;}
+  .pill.solid{background:var(--primary);color:var(--primary-foreground);}
+  .pill.outline{background:transparent;border:1.5px solid var(--border);color:var(--neutral-foreground);}
+  .section-head{display:flex;align-items:center;justify-content:space-between;font-family:var(--serif);font-weight:600;font-size:24px;letter-spacing:-.015em;color:var(--foreground);margin-top:4px;cursor:pointer;}
+  .section-head svg{width:16px;height:16px;color:var(--foreground-muted);transition:transform .25s ease;}
+  .section-head.collapsed svg{transform:rotate(180deg);}
+  .section-body.hidden{display:none;}
+
+  /* ---------- Full-bleed device mode (real phone, edge-to-edge) ---------- */
+  @media (max-width:460px){
+    body{
+      padding:0;background:var(--page-bg);align-items:stretch;
+      height:100vh;height:100dvh;min-height:0;overflow:hidden;
+    }
+    .stage-caption{display:none;}
+    .proto-nav{display:none;}
+    .phone{
+      width:100vw;height:100vh;height:100dvh;max-height:none;
+      border-radius:0;padding:0;box-shadow:none;
+    }
+    .phone-screen{border-radius:0;}
+    /* No simulated chrome on a real device — the OS provides it */
+    .phone-screen::before{display:none;}   /* Dynamic Island */
+    .status-bar{display:none;}             /* fake 9:41 / icons */
+    .home-indicator{display:none;}         /* fake home pill */
+    /* Clear the real notch + home indicator via safe-area insets */
+    .scroll{
+      padding-top:env(safe-area-inset-top);
+      padding-bottom:env(safe-area-inset-bottom);
+      padding-left:env(safe-area-inset-left);
+      padding-right:env(safe-area-inset-right);
+    }
+    /* Status bar is gone on mobile, so the header no longer needs to clear it */
+    header.brand{padding-top:14px;}
+    /* Browser chrome sits below the real notch; .scroll already pads the safe area */
+    .browser-bar{top:env(safe-area-inset-top);}
+    .screen.web header.brand{padding-top:76px;}
+    /* native app bar: scroll already clears the notch, so drop the desktop status-bar padding */
+    .app-bar{padding-top:14px;}
+  }
+</style>
+</head>
+<body>
+  <nav class="proto-nav" aria-label="Prototype sections">
+    <button data-section="web">1. Onboarding Mobile Web</button>
+    <button data-section="inapp">2. Onboarding In App</button>
+    <button data-section="primary">3. Primary App Experience</button>
+  </nav>
+  <div class="phone">
+    <div class="phone-screen" id="app"></div>
+  </div>
+
+<script>
+/* ============================================================
+   Lucide icons — exact inner SVG paths from lucide-static v1.21.0
+   (https://lucide.dev). Wrapped by I() in a 24x24 stroke svg.
+   ============================================================ */
+const ICONS = {
+  'lock':'<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  'rotate-cw':'<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>',
+  'ticket':'<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/>',
+  'mail':'<path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/>',
+  'message-circle':'<path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/>',
+  'circle-check':'<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  'phone':'<path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/>',
+  'info':'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  'credit-card':'<rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/>',
+  'id-card':'<path d="M16 10h2"/><path d="M16 14h2"/><path d="M6.17 15a3 3 0 0 1 5.66 0"/><circle cx="9" cy="11" r="2"/><rect x="2" y="5" width="20" height="14" rx="2"/>',
+  'notepad-text':'<path d="M8 2v4"/><path d="M12 2v4"/><path d="M16 2v4"/><rect width="16" height="18" x="4" y="4" rx="2"/><path d="M8 10h6"/><path d="M8 14h8"/><path d="M8 18h5"/>',
+  'bell-dot':'<path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M11.68 2.009A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673c-.824-.85-1.678-1.731-2.21-3.348"/><circle cx="18" cy="5" r="3"/>',
+  'x':'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  'clock':'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  'chevron-right':'<path d="m9 18 6-6-6-6"/>',
+  'loader-circle':'<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
+  'clipboard-list':'<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+  'bell':'<path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/>',
+  'heart-pulse':'<path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/><path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>',
+  'user':'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  'party-popper':'<path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/>',
+  'circle-user-round':'<path d="M17.925 20.056a6 6 0 0 0-11.851.001"/><circle cx="12" cy="11" r="4"/><circle cx="12" cy="12" r="10"/>',
+  'contact-round':'<path d="M16 2v2"/><path d="M17.915 22a6 6 0 0 0-12 0"/><path d="M8 2v2"/><circle cx="12" cy="12" r="4"/><rect x="3" y="4" width="18" height="18" rx="2"/>',
+  'calendar':'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+  'signpost':'<path d="M12 13v8"/><path d="M12 3v3"/><path d="M2.354 10.354a1.207 1.207 0 0 1 0-1.708l2.06-2.06A2 2 0 0 1 5.828 6h12.344a2 2 0 0 1 1.414.586l2.06 2.06a1.207 1.207 0 0 1 0 1.708l-2.06 2.06a2 2 0 0 1-1.414.586H5.828a2 2 0 0 1-1.414-.586z"/>',
+  'house':'<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  'accessibility':'<circle cx="16" cy="4" r="1"/><path d="m18 19 1-7-6 1"/><path d="m5 8 3-3 5.5 3-2.36 3.5"/><path d="M4.24 14.5a5 5 0 0 0 6.88 6"/><path d="M13.76 17.5a5 5 0 0 0-6.88-6"/>',
+  'stethoscope':'<path d="M11 2v2"/><path d="M5 2v2"/><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/>',
+  'person-standing':'<circle cx="12" cy="5" r="1"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/>',
+  'brain':'<path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/>',
+  'smartphone':'<rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/>',
+  'watch':'<path d="M12 10v2.2l1.6 1"/><path d="m16.13 7.66-.81-4.05a2 2 0 0 0-2-1.61h-2.68a2 2 0 0 0-2 1.61l-.78 4.05"/><path d="m7.88 16.36.8 4a2 2 0 0 0 2 1.61h2.72a2 2 0 0 0 2-1.61l.81-4.05"/><circle cx="12" cy="12" r="6"/>',
+  'laptop':'<path d="M18 5a2 2 0 0 1 2 2v8.526a2 2 0 0 0 .212.897l1.068 2.127a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45l1.068-2.127A2 2 0 0 0 4 15.526V7a2 2 0 0 1 2-2z"/><path d="M20.054 15.987H3.946"/>',
+  'search':'<path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/>',
+  'chevron-down':'<path d="m6 9 6 6 6-6"/>',
+  'arrow-left':'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  'arrow-right':'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  'check':'<path d="M20 6 9 17l-5-5"/>',
+  'circle-alert':'<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>'
+};
+function I(name, sw){
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw||2}" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]||''}</svg>`;
+}
+
+/* ============================================================
+   Markup builders
+   ============================================================ */
+function badge(icon){ return `<div class="icon-badge">${I(icon)}</div>`; }
+function qhead(icon,q){ return `<div class="q-head">${badge(icon)}<div class="question">${q}</div></div>`; }
+function question(q){ return `<div class="question">${q}</div>`; }
+function subtle(t){ return `<div class="q-subtle">${t}</div>`; }
+
+function tinput(ph, opts={}){
+  const lead = opts.lead ? `<span class="field-icon field-icon-lead">${I(opts.lead)}</span>` : '';
+  const trail = opts.icon ? `<span class="field-icon">${I(opts.icon)}</span>` : '';
+  if(lead || trail){
+    return `<div class="input-wrap${opts.lead?' lead':''}">${lead}<input class="input" placeholder="${ph}" />${trail}</div>`;
+  }
+  return `<input class="input" placeholder="${ph}" />`;
+}
+function codeboxes(n){
+  let b='';
+  for(let i=0;i<n;i++){ b+=`<input class="code-box" type="text" inputmode="numeric" maxlength="1" placeholder="#" />`; }
+  return `<div class="code-boxes">${b}</div>`;
+}
+function field(label, inner){ return `<div class="field"><label class="field-label">${label}</label>${inner}</div>`; }
+function select(ph, options){
+  return `<div class="select-wrap"><select class="input"><option value="" selected disabled hidden>${ph}</option>${options.map(o=>`<option>${o}</option>`).join('')}</select><span class="field-icon">${I('chevron-down')}</span></div>`;
+}
+function opt(kind,label,reveal){
+  return `<div class="option" data-kind="${kind}"${reveal?` data-reveal="${reveal}"`:''}><span class="${kind}"></span><span class="opt-label">${label}</span></div>`;
+}
+function group(kind, options, seg){
+  return `<div class="opt-group${seg?' segmented':''}" data-mode="${kind==='checkbox'?'multi':'single'}">${options.join('')}</div>`;
+}
+function cond(id, inner){ return `<div class="conditional" id="${id}">${inner}</div>`; }
+function slider(value,left,right){
+  return `<div class="slider-wrap"><div class="slider"><input type="range" min="1" max="10" value="${value}" />`
+    +`<div class="slider-track"><div class="slider-fill"></div></div>`
+    +`<div class="slider-thumb"><span class="chev">&#8249;</span><span class="val">${value}</span><span class="chev">&#8250;</span></div></div>`
+    +`<div class="slider-labels"><span>${left}</span><span>${right}</span></div></div>`;
+}
+function qcard(sections){ return `<div class="qcard">${sections.join('<div class="qcard-divider"></div>')}</div>`; }
+function section(inner){ return `<div class="qcard-section">${inner}</div>`; }
+
+/* ----- Native-app Setup hub builders ----- */
+function dateStrip(activeIdx){
+  const days=[['Mon',6],['Tue',7],['Wed',8],['Thu',9],['Fri',10],['Sat',11],['Sun',12]];
+  return `<div class="date-strip">`+days.map(([d,n],i)=>
+    `<div class="day${i===activeIdx?' active':''}"><span class="day-d">${d}</span><span class="day-n">${n}</span><span class="day-dot"></span></div>`
+  ).join('')+`</div>`;
+}
+function hubRow(icon,h,s,btn,style,iconVar){
+  return `<div class="hub-row"><div class="task-ico${iconVar?' '+iconVar:''}">${I(icon)}</div>`
+    + `<div class="task-text"><div class="task-h">${h}</div><div class="task-s">${s}</div></div>`
+    + `<button class="pill ${style}">${btn}</button></div>`;
+}
+/* Schedule-your-first-call card (prompt) and its booked-call replacement */
+const SCHEDULE_PROMPT =
+  `<div class="schedule-card"><div class="task-ico lightest">${I('smartphone')}</div>`
+  + `<div class="task-text"><div class="task-h">Schedule your first call</div><div class="task-s">Schedule an introduction with your health coach.</div></div>`
+  + `<button class="pill solid" data-open-schedule>Schedule</button></div>`;
+function scheduleBooked(short){
+  return `<div class="hub-row"><div class="task-ico">${I('phone')}</div>`
+    + `<div class="task-text"><div class="task-h">Call with Coach Tanya</div><div class="task-s">${short}, 2:30pm · 30 min</div></div>`
+    + `<button class="pill blue" data-open-schedule>Reschedule</button></div>`;
+}
+
+/* ============================================================
+   Screen definitions (11 logical steps + confirmation)
+   ============================================================ */
+const LOREM = `<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p><p>Proin in augue id augue ullamcorper tristique sit amet et orci. Nulla facilisi. Maecenas sapien magna, venenatis id lacinia a, suscipit ut lorem. Nulla sit amet tincidunt nibh. Proin semper odio bibendum, ultricies velit ut, varius metus.</p><p>Sed semper ullamcorper velit, tincidunt interdum velit eleifend a. Duis lorem tellus, blandit in libero eu, consectetur gravida est. Pellentesque sit amet porttitor felis. Donec ut est lorem. Praesent rhoncus, lectus id fermentum faucibus, enim purus aliquet est.</p><p>Nunc gravida ullamcorper leo, quis volutpat magna iaculis nec. Etiam vehicula quam sed dolor. Vivamus laoreet tincidunt mauris, vitae malesuada metus dignissim quis.</p>`;
+
+const screens = [
+  /* 1 — Identity */
+  {
+    step:'Step 1 of 11',
+    title:"Let's get you set up.",
+    subtitle:'We will use your smartphone and smartwatch to track your progress.',
+    next:'Next',
+    main: qcard([
+      section(
+        qhead('circle-user-round','What is your name?')
+        + field('First Name', tinput('John'))
+        + field('Last Name', tinput('Doe'))
+      ),
+      section(
+        question('What is your date of birth?')
+        + tinput('MM/DD/YYYY', {icon:'calendar'})
+      )
+    ])
+  },
+
+  /* 2 — Contact */
+  {
+    step:'Step 2 of 11',
+    title:'How do we reach you?',
+    subtitle:'Your email and phone are how receive updates, reminders, and your app login.',
+    next:'Next',
+    main: qcard([
+      section(
+        qhead('contact-round','What is your email address?')
+        + tinput('example@email.com')
+      ),
+      section(
+        question('What is your mobile phone number?')
+        + tinput('(555) 555-5555')
+        + group('checkbox', [opt('checkbox',"I don't have a mobile phone.",'no-phone-alert')])
+        + cond('no-phone-alert',
+            `<div class="alert">${I('circle-alert')}<div class="alert-text">We can provide you a loaner smartphone for your recovery.</div></div>`
+          )
+      )
+    ])
+  },
+
+  /* 3 — Devices (ownership) */
+  {
+    step:'Step 3 of 11',
+    title:'What tech do you have at home?',
+    subtitle:'We will use a smartphone and smartwatch to help track your progress.',
+    next:'Next',
+    main:
+      qcard([
+        section(
+          qhead('smartphone','Do you have a smartphone?')
+          + group('radio', [opt('radio','Yes','sp-yes'), opt('radio','No','sp-no-alert')], true)
+          + cond('sp-yes',
+              field('What type of smartphone?', group('radio', [opt('radio','iPhone','sp-ios'), opt('radio','Android','sp-android')], true))
+              + cond('sp-ios', field('What model of iPhone?', select('Select',['iPhone 16 Pro Max','iPhone 16 Plus','iPhone 16','iPhone 15','iPhone 14','Older model'])))
+              + cond('sp-android', field('What model of Android?', select('Select',['Samsung Galaxy S24','Samsung Galaxy S23','Google Pixel 9','Google Pixel 8','Other'])))
+            )
+          + cond('sp-no-alert',
+              `<div class="alert">${I('circle-alert')}<div class="alert-text">We can provide you a loaner smartphone for your recovery.</div></div>`
+            )
+        )
+      ])
+      + qcard([
+        section(
+          qhead('watch','Do you have a smartwatch?')
+          + group('radio', [opt('radio','Yes','sw-yes'), opt('radio','No','sw-no-alert')], true)
+          + cond('sw-yes',
+              field('What type of smartwatch?', `<div class="select-wrap"><select class="input" data-reveal="sw-model"><option value="" selected disabled hidden>Select</option><option>Apple Watch</option><option>Samsung Galaxy Watch</option><option>Fitbit</option><option>Garmin</option><option>Other</option></select><span class="field-icon">${I('chevron-down')}</span></div>`)
+              + cond('sw-model', `<div class="field"><label class="field-label" data-model-label>What model?</label>${select('Select',['Apple Watch Ultra','Apple Watch Series 10','Apple Watch Series 9','Apple Watch SE'])}</div>`)
+            )
+          + cond('sw-no-alert',
+              `<div class="alert">${I('circle-alert')}<div class="alert-text">We can provide you a loaner smartwatch for your recovery.</div></div>`
+            )
+        )
+      ])
+  },
+
+  /* 4 — Mobility */
+  {
+    step:'Step 4 of 11',
+    title:'How do you get around at home?',
+    subtitle:'This helps your care team make sure your exercise plan is safe for you.',
+    next:'Next',
+    main: qcard([
+      section(
+        qhead('accessibility','Any walking assistance at home?')
+        + group('radio', [
+            opt('radio','I walk independently.'),
+            opt('radio','I use a <strong>cane</strong>.','falls'),
+            opt('radio','I use a <strong>walker</strong>.','falls'),
+            opt('radio','I use a <strong>wheelchair</strong>.','mob-ineligible')
+          ])
+        + cond('falls',
+            question('Have you had any falls in the last six (6) months?')
+            + group('radio', [opt('radio','Yes','mob-ineligible'), opt('radio','No')], true)
+          )
+        + cond('mob-ineligible',
+            `<div class="alert error">${I('circle-alert')}<div class="alert-text">We are sorry, but you are not eligible to complete your recovery program with Relevais.</div></div>`
+          )
+      )
+    ])
+  },
+
+  /* 5 — Terms */
+  {
+    step:'Step 5 of 11',
+    lockNext:true,
+    title:'An important read before we continue.',
+    subtitle:'These terms cover how your data is used and what to expect from the program.',
+    next:'Next',
+    main: qcard([
+      section(
+        `<div class="terms-box"><h4>Terms and Conditions</h4>${LOREM}</div>`
+        + group('checkbox', [`<div class="option" data-kind="checkbox" data-gate><span class="checkbox"></span><span class="opt-label">I agree to the terms and conditions.</span></div>`])
+      )
+    ])
+  },
+
+  /* Milestone — account created (interstitial after Terms, before step 6) */
+  {
+    milestone:true,
+    next:'Continue',
+    main:
+      `<div class="confirm milestone">`
+      + `<div class="party-icon">${I('party-popper',2)}`
+        + `<span class="confetti" style="--dx:-26px;--dy:-22px;--c:#6497cd;--d:0s"></span>`
+        + `<span class="confetti" style="--dx:5px;--dy:-34px;--c:#6ba539;--d:.05s"></span>`
+        + `<span class="confetti" style="--dx:28px;--dy:-18px;--c:#e6a020;--d:.1s"></span>`
+        + `<span class="confetti" style="--dx:-32px;--dy:8px;--c:#0c3b6e;--d:.03s"></span>`
+        + `<span class="confetti" style="--dx:30px;--dy:12px;--c:#e8855a;--d:.08s"></span>`
+      + `</div>`
+      + `<div class="title">Welcome to Relevais!</div>`
+      + `<div class="subtitle">You've successfully created your account. Click continue below to finish creating your profile, or check your email for a link to download the Relevais app.</div>`
+      + `</div>`
+  },
+
+  /* 6 — Home address */
+  {
+    step:'Step 6 of 11',
+    title:'Where are you recovering?',
+    subtitle:'Your home address helps us understand your care setting and send you equipment.',
+    next:'Next',
+    main: qcard([
+      section(
+        qhead('signpost','What is your home address?')
+        + field('Street Address', tinput('Enter street address'))
+        + field('City', tinput('Enter city'))
+        + field('State', select('Select', ['Alabama','Alaska','Arizona','California','Colorado','Florida','New York','Texas','Washington']))
+        + field('Zip Code', tinput('Enter zip code'))
+      )
+    ])
+  },
+
+  /* 7 — Living */
+  {
+    step:'Step 7 of 11',
+    title:'Tell us about your home life.',
+    subtitle:'Knowing your living situation helps your care team tailor support.',
+    next:'Next',
+    main: qcard([
+      section(
+        qhead('house','What is your living situation?')
+        + group('radio', [opt('radio','Home'), opt('radio','Senior Living Center')])
+      ),
+      section(
+        question('Do you live alone?')
+        + group('radio', [opt('radio','Yes'), opt('radio','No','live-with')], true)
+        + cond('live-with',
+            question('Who lives with you?') + subtle('Select all that apply.')
+            + group('checkbox', [opt('checkbox','Spouse/partner'),opt('checkbox','Children'),opt('checkbox','Parent(s)'),opt('checkbox','Other')])
+          )
+      )
+    ])
+  },
+
+  /* 8 — Medical */
+  {
+    step:'Step 8 of 11',
+    title:'Your health background.',
+    subtitle:"Your care team needs a quick picture of your existing conditions so they can build a program that's right for you.",
+    next:'Next',
+    main: qcard([
+      section(
+        qhead('stethoscope','Who is your cardiologist?')
+        + tinput('Search by name...', {icon:'search'})
+        + `<div class="q-hint">Can't find yours? We'll follow up to get their details.</div>`
+      ),
+      section(
+        question('Any current medical conditions?') + subtle('Select all that apply.')
+        + group('checkbox', [
+            opt('checkbox','Coronary artery disease'),
+            opt('checkbox','Hypertension (high blood pressure)'),
+            opt('checkbox','Heart failure'),
+            opt('checkbox','Diabetes'),
+            opt('checkbox','High cholesterol'),
+            opt('checkbox','Atrial fibrillation'),
+            opt('checkbox','Pacemaker')
+          ])
+      ),
+      section(
+        question('Are you a smoker?')
+        + group('radio', [opt('radio','Never'), opt('radio','Quit','quit-when packs'), opt('radio','Current','packs')])
+        + cond('quit-when',
+            question('When did you quit?')
+            + tinput('e.g. early 2023')
+            + `<div class="q-hint">Just give your best estimate.</div>`
+          )
+        + cond('packs',
+            question('How many packs per day?')
+            + group('radio', [opt('radio','Less than 1 pack'), opt('radio','1 pack'), opt('radio','More than 1 pack')])
+          )
+      )
+    ])
+  },
+
+  /* 9 — Exercise */
+  {
+    step:'Step 9 of 11',
+    title:"Let's talk about staying active.",
+    subtitle:'No matter your starting point, this helps us understand your baseline. Even a short walk counts.',
+    next:'Next',
+    main: qcard([
+      section(
+        qhead('person-standing','Do you exercise?')
+        + group('radio', [opt('radio','Yes','ex-yes'), opt('radio','No')], true)
+        + cond('ex-yes',
+            question('What types?') + subtle('Select all that apply.')
+            + group('checkbox', [
+                opt('checkbox','Walking'),opt('checkbox','Running'),opt('checkbox','Cycling'),
+                opt('checkbox','Weights / strength training'),opt('checkbox','Yoga'),opt('checkbox','Other')
+              ])
+            + question('How often?')
+            + group('radio', [opt('radio','1–2 times per week'),opt('radio','3–4 times per week'),opt('radio','5 or more times per week')])
+          )
+      ),
+      section(
+        question('How confident are you in your ability to exercise?')
+        + slider(5,'Not confident','Very confident')
+      ),
+      section(
+        question('How motivated are you to exercise?')
+        + slider(5,'Not motivated','Very motivated')
+      )
+    ])
+  },
+
+  /* 10 — Wellbeing */
+  {
+    step:'Step 10 of 11',
+    title:'How are you feeling overall?',
+    subtitle:'These questions help your care team understand your quality of life.',
+    next:'Next',
+    main: qcard([
+      section(
+        qhead('brain','How would you rate your sleep?')
+        + slider(5,'Awful','Great')
+      ),
+      section(
+        question('How would you rate your feeling of social support?')
+        + slider(5,'Very lonely','Strong support system')
+      )
+    ])
+  },
+
+  /* 11 — Tech comfort (Final step) */
+  {
+    step:'Final step',
+    title:'How familiar are you with technology?',
+    subtitle:'This will help our team better prepare you for your recovery.',
+    next:'Submit',
+    main:
+      qcard([
+        section(
+          qhead('smartphone','How comfortable are you using a smartphone?')
+          + slider(5,'Not comfortable','Very comfortable')
+        ),
+        section(
+          question('How comfortable are you using a smartwatch?')
+          + slider(5,'Not comfortable','Very comfortable')
+        )
+      ])
+      + qcard([
+        section(
+          qhead('laptop','Do you own other devices?') + subtle('Select all, if any, that apply.')
+          + group('checkbox', [
+              opt('checkbox','Tablet'),
+              opt('checkbox','Laptop'),
+              opt('checkbox','Desktop computer'),
+              `<div class="option" data-kind="checkbox" data-exclusive><span class="checkbox"></span><span class="opt-label">I don't have any other devices.</span></div>`
+            ])
+        )
+      ])
+  },
+
+  /* 12 — Confirmation (end of web flow) */
+  {
+    confirm:true,
+    next:'Get started',
+    main:
+      `<div class="confirm">`
+      + `<div class="success-ring">${I('check',2.5)}</div>`
+      + `<div class="title">Your account has been created.</div>`
+      + `<div class="subtitle">You've successfully finished setting up your account, and your path to recovery begins now!</div>`
+      + `</div>`
+  },
+
+  /* 13 — Splash (start of NATIVE app flow — no browser chrome) */
+  {
+    app:true,
+    splash:true,
+    next:'Get Started',
+    main:
+      `<div class="splash">`
+      + `<div class="splash-card">carousel about the app</div>`
+      + `<div class="carousel-dots"><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`
+      + `</div>`
+  },
+
+  /* 14 — Accept Invite (native app) */
+  {
+    app:true, solo:true,
+    title:'Welcome!',
+    subtitle:'To confirm your invite, enter the required info below and click "Accept Invite".',
+    next:'Accept Invite',
+    main: qcard([
+      section(
+        qhead('ticket','Accept your invite.')
+        + field('First Name', tinput('John'))
+        + field('Last Name', tinput('Doe'))
+        + field('Email Address', tinput('example@email.com', {lead:'mail'}))
+        + field('Date of Birth', tinput('MM/DD/YY', {icon:'calendar'}))
+      )
+    ])
+  },
+
+  /* 15 — Login Code (native app) */
+  {
+    app:true, solo:true,
+    title:"Let's get started.",
+    subtitle:'Get your login code by entering your phone number below.',
+    next:'Send Login Code',
+    main: qcard([
+      section(
+        qhead('message-circle','Get your login code.')
+        + field('Phone Number', tinput('(555) 555-5555', {lead:'phone'}))
+        + `<div class="q-hint">You will receive your login code in your text messages soon after you click the button below.</div>`
+      )
+    ])
+  },
+
+  /* 16 — Verify Account (native app) */
+  {
+    app:true, solo:true,
+    title:'Verify your account.',
+    subtitle:'Enter your date of birth and the 6-digit code texted the provided phone number.',
+    next:'Verify and Sign In',
+    overlay:
+      `<div class="ios-notif"><div class="ios-notif-icon">${I('message-circle')}</div>`
+      + `<div class="ios-notif-body"><div class="ios-notif-top"><span class="ios-notif-title">+0987654321</span><span class="ios-notif-time">now</span></div>`
+      + `<div class="ios-notif-text">Your Relevais login code is 555555</div></div></div>`,
+    main:
+      qcard([
+        section(
+          qhead('circle-check','Enter your details.')
+          + field('Verification Code', codeboxes(6)
+              + `<div class="q-hint">Didn't receive a code? <strong style="color:var(--primary-light)">Resend it now.</strong></div>`)
+          + field('Confirm Date of Birth', tinput('MM/DD/YY', {icon:'calendar'}))
+        )
+      ])
+  },
+
+  /* 17 — Setup hub (native app · base state) */
+  {
+    app:true, appbar:true, hub:true,
+    overlay:
+      `<div class="ios-alert-overlay">`
+      + `<div class="ios-alert">`
+      + `<div class="ios-alert-title"></div>`
+      + `<div class="ios-alert-body"></div>`
+      + `<div class="ios-alert-btns"><button class="ios-alert-btn secondary" data-alert="deny">Don't Allow</button><button class="ios-alert-btn primary" data-alert="allow">Allow</button></div>`
+      + `</div></div>`
+      + `<div class="sheet-overlay" id="sync-sheet" data-synced="0">`
+        + `<div class="sheet">`
+          + `<div class="sheet-grab"></div>`
+          + `<div class="sheet-head"><div class="sheet-title">Sync Smartwatch</div><button class="sheet-close" data-sheet-close aria-label="Close">${I('x')}</button></div>`
+          + `<div class="sheet-body"><div class="sheet-icon"></div><div class="sheet-status"></div><div class="sheet-sub"></div></div>`
+          + `<button class="sheet-cancel" data-sheet-close>Cancel</button>`
+        + `</div></div>`
+      + `<div class="sheet-overlay" id="schedule-sheet">`
+        + `<div class="sheet">`
+          + `<div class="sheet-grab"></div>`
+          + `<div class="sheet-head"><div class="sheet-title">Scheduling</div><button class="sheet-close" data-sched-close aria-label="Close">${I('x')}</button></div>`
+          + `<div class="sched-sheet-body">`
+            + `<div class="sched-title">Schedule an Activity</div>`
+            + `<div class="sheet-chip">${I('smartphone')}Health Coach Video Call</div>`
+            + `<div class="sched-divider"></div>`
+            + `<div class="sched-label">Select a date below.</div>`
+            + `<div class="sched-sub">Only dates from the current week are available for scheduling.</div>`
+            + `<div class="date-list">`
+              + `<button class="date-opt" data-date data-date-idx="0" data-date-short="Mon" data-date-full="Monday, April 6">Monday, April 6</button>`
+              + `<button class="date-opt" data-date data-date-idx="1" data-date-short="Tue" data-date-full="Tuesday, April 7">Tuesday, April 7</button>`
+              + `<button class="date-opt" data-date data-date-idx="2" data-date-short="Wed" data-date-full="Wednesday, April 8">Wednesday, April 8</button>`
+              + `<button class="date-opt" data-date data-date-idx="3" data-date-short="Thu" data-date-full="Thursday, April 9">Thursday, April 9</button>`
+              + `<button class="date-opt" data-date data-date-idx="4" data-date-short="Fri" data-date-full="Friday, April 10">Friday, April 10</button>`
+            + `</div>`
+            + `<button class="sheet-cancel" data-sched-close>Cancel</button>`
+          + `</div>`
+        + `</div></div>`
+      + `<div class="sheet-overlay" id="surveys-sheet">`
+        + `<div class="sheet">`
+          + `<div class="sheet-grab"></div>`
+          + `<div class="sheet-head"><div class="sheet-title">Surveys</div><button class="sheet-close" data-surveys-close aria-label="Close">${I('x')}</button></div>`
+          + `<div class="surveys-body">`
+            + `<div class="sched-title">Health Surveys</div>`
+            + `<div class="surveys-intro">Complete these surveys to help Relevais and your health coach provide the best care possible.</div>`
+            + `<div class="hub-div" style="margin-bottom:14px;"></div>`
+            + `<div class="sched-label">Select a survey to complete.</div>`
+            + `<div class="survey-list">`
+              + ['Survey 1','Survey 2','Survey 3','Survey 4'].map(n=>
+                  `<div class="survey-row"><div><div class="survey-name">${n}</div><div class="survey-meta">12 questions · Est. 3 minutes</div></div><button class="pill solid">Complete</button></div>`
+                ).join('')
+            + `</div>`
+            + `<div class="bar-banner amber soft" style="margin-bottom:16px;"><span class="lock-badge">${I('lock')}</span><span>Relevais will never share any of your health data with outside sources.</span></div>`
+            + `<button class="sheet-cancel" data-surveys-close>Close</button>`
+          + `</div>`
+        + `</div></div>`,
+    main:
+      `<div class="hub">`
+      + `<div class="hub-titlewrap"><div class="hub-eyebrow">Welcome to Relevais!</div>`
+        + `<h1 class="hub-title">Let's set up your app.</h1></div>`
+      + `<div class="hub-card">`
+        + `<div class="hub-pad" style="padding-top:4px;">${dateStrip(0)}</div>`
+        + `<div class="hub-div"></div>`
+        + `<div class="hub-pad" id="schedule-slot">${SCHEDULE_PROMPT}</div>`
+        + `<div class="hub-div"></div>`
+        + `<div class="hub-pad"><div class="hub-row"><div class="task-ico">${I('notepad-text')}</div>`
+          + `<div class="task-text"><div class="task-h">Complete Surveys</div><div class="task-s">Fill out these health surveys in order to provide us a full picture of your health.</div></div>`
+          + `<button class="pill solid" data-open-surveys>Start</button></div></div>`
+        + `<div id="remaining-block">`
+          + `<div class="hub-div"></div>`
+          + `<div class="hub-pad">`
+            + `<div class="section-head">Remaining needs ${I('chevron-down')}</div>`
+            + `<div class="section-body">`
+              + `<div class="remaining">`
+                + `<div class="need" data-need="notifications">` + hubRow('bell-dot','Enable app notifications','Relevais needs to be able to send you notifications throughout your program.','Allow','outline','soft') + `<div class="hub-div"></div></div>`
+                + `<div class="need" data-need="health">` + hubRow('heart-pulse','Connect to Apple Health',"Relevais uses data provided by your smartphone's health application.",'Allow','outline','soft') + `<div class="hub-div"></div></div>`
+                + `<div class="need" data-need="smartwatch">` + hubRow('watch','Sync Smartwatch','Sync your smartwatch to track your recovery progress.','Sync','outline','soft') + `</div>`
+              + `</div>`
+              + `<div class="bar-banner amber soft"><span class="lock-badge">${I('lock')}</span><span>Relevais will never share any of your health data with outside sources.</span></div>`
+            + `</div>`
+          + `</div>`
+        + `</div>`
+        + `<div id="upcoming-block" style="display:none;">`
+          + `<div class="hub-div"></div>`
+          + `<div class="hub-pad upcoming-pad">`
+            + `<div class="section-head">Upcoming Schedule ${I('chevron-down')}</div>`
+            + `<div class="section-body">`
+              + `<div class="upcoming">`
+                + `<div class="upcoming-date" id="upcoming-date">Tuesday, April 7</div>`
+                + `<div class="upcoming-row"><span class="up-ring"></span><span class="up-time">2:30pm</span><span class="up-name">Coach Tanya Call</span><button class="up-resched" data-open-schedule>Reschedule ${I('chevron-right')}</button></div>`
+              + `</div>`
+            + `</div>`
+          + `</div>`
+        + `</div>`
+      + `</div>`
+      + `</div>`
+  }
+];
+
+/* ============================================================
+   Render
+   ============================================================ */
+const statusBar = `
+  <div class="status-bar">
+    <div class="time">9:41</div>
+    <div class="status-icons">
+      <svg width="19" height="13" viewBox="0 0 19 13" fill="#000"><rect x="0" y="8" width="3" height="5" rx="1"/><rect x="5" y="5.5" width="3" height="7.5" rx="1"/><rect x="10" y="3" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="13" rx="1"/></svg>
+      <svg width="18" height="13" viewBox="0 0 18 13" fill="none"><path d="M9 11.5a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8Z" fill="#000"/><path d="M3.2 6.4a8 8 0 0 1 11.6 0" stroke="#000" stroke-width="1.6" stroke-linecap="round"/><path d="M5.6 8.7a4.6 4.6 0 0 1 6.8 0" stroke="#000" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <svg width="28" height="13" viewBox="0 0 28 13" fill="none"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" stroke="#000" stroke-opacity="0.4"/><rect x="2" y="2" width="19" height="9" rx="2" fill="#000"/><path d="M25 4.5v4a2 2 0 0 0 1.2-1.84V6.34A2 2 0 0 0 25 4.5Z" fill="#000" fill-opacity="0.5"/></svg>
+    </div>
+  </div>`;
+
+/* Relevais brand wordmark (vector logo, inlined; uses currentColor) */
+const LOGO = `<svg class="logo-svg" viewBox="0 0 116 24" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Relevais"><path d="M113.283 13.4078C113.149 13.4749 113.049 13.5084 112.982 13.5084C112.848 13.5084 112.725 13.4413 112.613 13.3073C111.719 12.1899 110.792 11.4078 109.831 10.9609C108.87 10.4916 108.032 10.257 107.317 10.257C106.803 10.257 106.322 10.3687 105.875 10.5922C105.451 10.8156 105.239 11.2067 105.239 11.7654C105.239 12.1899 105.406 12.5475 105.741 12.838C106.077 13.1285 106.49 13.3631 106.982 13.5419C107.496 13.7207 108.021 13.8771 108.557 14.0112C109.317 14.1899 110.088 14.4022 110.87 14.648C111.652 14.8715 112.367 15.1732 113.015 15.5531C113.663 15.933 114.188 16.4134 114.591 16.9944C114.993 17.5754 115.194 18.2905 115.194 19.1397C115.194 20.5251 114.635 21.676 113.518 22.5922C112.423 23.5084 110.915 23.9665 108.993 23.9665C108.389 23.9665 107.797 23.8994 107.216 23.7654C106.635 23.6536 106.088 23.4637 105.574 23.1955C105.44 23.1285 105.35 23.095 105.306 23.095C105.172 23.095 105.105 23.162 105.105 23.2961C105.105 23.3631 105.127 23.4413 105.172 23.5307C105.216 23.6648 105.239 23.743 105.239 23.7654C105.239 23.9218 105.116 24 104.87 24H103.797C103.574 24 103.406 23.9106 103.294 23.7318L100.78 18.9721C100.713 18.838 100.68 18.7486 100.68 18.7039C100.68 18.5475 100.758 18.4246 100.915 18.3352L101.82 17.8324C101.954 17.7654 102.043 17.7318 102.088 17.7318C102.199 17.7318 102.311 17.8212 102.423 18C103.384 19.4302 104.434 20.4581 105.574 21.0838C106.736 21.6871 107.92 21.9888 109.127 21.9888C111.004 21.9888 111.942 21.419 111.942 20.2793C111.942 19.7654 111.708 19.3519 111.239 19.0391C110.792 18.7039 110.222 18.4246 109.529 18.2011C108.859 17.9776 108.177 17.7877 107.484 17.6313C105.831 17.2067 104.602 16.7151 103.797 16.1564C102.993 15.5754 102.468 14.9721 102.222 14.3464C101.976 13.7207 101.853 13.1173 101.853 12.5363C101.853 11.3519 102.3 10.3799 103.194 9.62011C104.11 8.86033 105.35 8.48044 106.915 8.48044C107.831 8.48044 108.635 8.60335 109.328 8.84916C110.043 9.07262 110.546 9.27374 110.836 9.45251C110.926 9.4972 110.993 9.51955 111.037 9.51955C111.105 9.51955 111.138 9.48603 111.138 9.41899C111.138 9.3743 111.127 9.31843 111.105 9.25139C111.082 9.18435 111.049 9.10614 111.004 9.01675C110.982 8.92737 110.959 8.86033 110.937 8.81564C110.937 8.7486 110.937 8.7039 110.937 8.68156C110.937 8.48044 111.071 8.37988 111.339 8.37988H112.11C112.356 8.37988 112.524 8.49161 112.613 8.71508L114.088 12.4357C114.11 12.5028 114.121 12.5587 114.121 12.6033C114.144 12.648 114.155 12.6927 114.155 12.7374C114.155 12.8715 114.077 12.9832 113.92 13.0726L113.283 13.4078Z" fill="currentColor"/><path d="M100.541 21.8211C100.832 21.8211 100.977 21.9664 100.977 22.2569V23.1619C100.977 23.4524 100.81 23.5977 100.474 23.5977H92.128C91.7928 23.5977 91.6252 23.4524 91.6252 23.1619V22.2569C91.6252 21.9664 91.7705 21.8211 92.061 21.8211H92.128C92.8431 21.8211 93.3794 21.553 93.737 21.0166C94.0945 20.4803 94.2733 19.8211 94.2733 19.039V15.9217C94.2733 15.363 94.2398 14.8379 94.1727 14.3463C94.1057 13.8546 93.9493 13.4412 93.7035 13.106C93.4576 12.7485 93.0666 12.5474 92.5303 12.5027C92.2845 12.4803 92.1616 12.3463 92.1616 12.1004V11.0949C92.1616 10.9161 92.3068 10.7932 92.5973 10.7261C93.8264 10.4356 94.8319 10.0781 95.6141 9.65352C96.3962 9.22894 97.2007 8.68145 98.0275 8.01106C98.0945 7.96637 98.1504 7.94402 98.1951 7.94402H98.2286C98.2733 7.94402 98.2956 7.96637 98.2956 8.01106V19.0055C98.2956 19.7876 98.4744 20.458 98.8319 21.0166C99.1895 21.553 99.7258 21.8211 100.441 21.8211H100.541ZM96.318 1.97754C96.9437 1.97754 97.547 2.27922 98.128 2.88257C98.7314 3.46357 99.0331 4.05575 99.0331 4.6591C99.0331 5.26246 98.7314 5.85463 98.128 6.43564C97.547 7.03899 96.9437 7.34067 96.318 7.34067C95.7593 7.34067 95.1671 7.03899 94.5414 6.43564C93.9381 5.87698 93.6364 5.2848 93.6364 4.6591C93.6364 4.05575 93.9381 3.46357 94.5414 2.88257C95.1224 2.27922 95.7146 1.97754 96.318 1.97754Z" fill="currentColor"/><path d="M89.4825 18.1341C89.4825 18.8268 89.5942 19.4637 89.8177 20.0447C90.0411 20.6034 90.5104 20.9274 91.2255 21.0168C91.4713 21.0391 91.5942 21.1732 91.5942 21.419V22.3911C91.5942 22.6592 91.4378 22.7933 91.1249 22.7933C90.164 22.7933 89.3596 22.8492 88.7115 22.9609C88.0858 23.0726 87.5383 23.2179 87.0691 23.3967C86.5998 23.5531 86.1417 23.7319 85.6947 23.933C85.6501 23.9553 85.583 23.9665 85.4936 23.9665H85.4266C85.3819 23.9665 85.3596 23.933 85.3596 23.8659C85.3596 23.7542 85.3819 23.4525 85.4266 22.9609C85.4936 22.4693 85.5607 21.933 85.6277 21.352C85.4713 21.7095 85.2143 22.1006 84.8568 22.5252C84.4992 22.9274 84.0188 23.2738 83.4154 23.5643C82.8344 23.8324 82.097 23.9665 81.2031 23.9665C80.5327 23.9665 79.8177 23.8324 79.0579 23.5643C78.2981 23.2738 77.583 22.8268 76.9126 22.2235C76.2422 21.6201 75.6948 20.8268 75.2702 19.8436C74.8456 18.838 74.6333 17.6201 74.6333 16.19C74.6333 14.3576 74.9573 12.8827 75.6054 11.7654C76.2758 10.6257 77.1361 9.79891 78.1864 9.28494C79.2367 8.74863 80.354 8.48047 81.5383 8.48047C83.4601 8.48047 85.0579 9.0503 86.3316 10.19C87.2478 9.83243 87.9517 9.46371 88.4434 9.08382C88.935 8.68159 89.2478 8.48047 89.3819 8.48047C89.4489 8.48047 89.4825 8.50282 89.4825 8.54751V18.1341ZM85.3596 13.9777C85.3596 12.8827 85.1026 12.0224 84.5886 11.3967C84.0746 10.771 83.2366 10.4581 82.0746 10.4581C81.1361 10.4581 80.3987 10.6928 79.8623 11.162C79.3484 11.609 78.9797 12.2011 78.7562 12.9386C78.5551 13.6537 78.4545 14.4246 78.4545 15.2514C78.4545 17.1509 78.8232 18.6481 79.5607 19.743C80.3205 20.838 81.3037 21.3855 82.5104 21.3855C83.2255 21.3855 83.7841 21.2402 84.1864 20.9497C84.5886 20.6369 84.8791 20.324 85.0579 20.0112C85.2366 19.676 85.3372 19.4861 85.3596 19.4414V13.9777Z" fill="currentColor"/><path d="M74.8695 8.84961C75.16 8.84961 75.3053 8.99486 75.3053 9.28536V10.1904C75.3053 10.4809 75.16 10.6261 74.8695 10.6261H74.4002C74.1097 10.6261 73.8416 10.749 73.5958 10.9949C73.35 11.2183 73.0483 11.6988 72.6907 12.4362L67.7298 23.263C67.6181 23.4865 67.4617 23.5982 67.2606 23.5982H65.5846C65.3835 23.5982 65.2271 23.4865 65.1153 23.263L60.1544 12.4697C59.8192 11.7323 59.5399 11.2407 59.3164 10.9949C59.1153 10.749 58.8248 10.6261 58.4449 10.6261H58.3779C58.0874 10.6261 57.9421 10.4809 57.9421 10.1904V9.28536C57.9421 8.99486 58.0874 8.84961 58.3779 8.84961H65.2159C65.5064 8.84961 65.6516 8.99486 65.6516 9.28536V10.1904C65.6516 10.4809 65.5064 10.6261 65.2159 10.6261H65.1488C64.4785 10.6261 64.1433 10.9055 64.1433 11.4641C64.1433 11.7323 64.1991 12.0228 64.3109 12.3356C64.4226 12.6485 64.579 13.006 64.7801 13.4083L67.4952 19.1736L69.9421 13.4083C70.1433 12.9613 70.3108 12.5479 70.4449 12.168C70.6014 11.7882 70.6796 11.4753 70.6796 11.2295C70.6796 10.8273 70.4561 10.6261 70.0092 10.6261H69.4393C69.1265 10.6261 68.9701 10.4809 68.9701 10.1904V9.28536C68.9701 8.99486 69.1265 8.84961 69.4393 8.84961H74.8695Z" fill="currentColor"/><path d="M58.5677 20.3129C57.942 21.4078 57.1487 22.2905 56.1879 22.9609C55.2493 23.6313 54.0203 23.9665 52.5007 23.9665C50.8694 23.9665 49.4616 23.609 48.2772 22.8939C47.0929 22.1564 46.1767 21.1956 45.5286 20.0112C44.9029 18.8045 44.5901 17.4972 44.5901 16.0894C44.5901 14.257 44.9253 12.7933 45.5957 11.6983C46.2884 10.581 47.1487 9.76538 48.1767 9.25142C49.227 8.73745 50.2884 8.48047 51.361 8.48047C52.389 8.48047 53.294 8.67041 54.0761 9.0503C54.8806 9.43019 55.551 9.92181 56.0873 10.5252C56.6236 11.1062 57.0258 11.7319 57.294 12.4023C57.5622 13.0503 57.6962 13.6537 57.6962 14.2123C57.6962 14.3911 57.6068 14.514 57.4281 14.581L48.8806 18.3017C49.2158 19.1509 49.7521 19.8995 50.4895 20.5475C51.227 21.1956 52.1655 21.5196 53.3052 21.5196C53.9532 21.5196 54.6124 21.3408 55.2828 20.9833C55.9532 20.6257 56.5342 20.0894 57.0258 19.3743C57.1823 19.1285 57.361 19.0726 57.5622 19.2067L58.5007 19.7766C58.6795 19.8883 58.7018 20.0671 58.5677 20.3129ZM50.8918 10.8604C50.199 10.8604 49.6515 11.0726 49.2493 11.4972C48.8471 11.9218 48.5677 12.4469 48.4113 13.0726C48.2772 13.6983 48.2214 14.324 48.2437 14.9497C48.2884 15.5754 48.3778 16.0894 48.5119 16.4916L53.2717 14.1118C53.294 13.1732 53.0705 12.4023 52.6013 11.7989C52.1543 11.1732 51.5845 10.8604 50.8918 10.8604Z" fill="currentColor"/><path d="M44.3503 21.8212C44.6408 21.8212 44.786 21.9665 44.786 22.257V23.162C44.786 23.4525 44.6184 23.5978 44.2832 23.5978H35.9369C35.6017 23.5978 35.4341 23.4525 35.4341 23.162V22.257C35.4341 21.9665 35.5793 21.8212 35.8698 21.8212H35.9369C36.652 21.8212 37.1883 21.5531 37.5458 21.0168C37.9034 20.4804 38.0821 19.8212 38.0821 19.0391V7.97765C38.0821 7.41899 38.0486 6.89386 37.9816 6.40224C37.9145 5.91061 37.7581 5.49721 37.5123 5.16201C37.2665 4.80447 36.8754 4.60335 36.3391 4.55866C36.0933 4.53631 35.9704 4.40224 35.9704 4.15642V3.15084C35.9704 2.97207 36.1156 2.84916 36.4062 2.78212C37.6352 2.49162 38.6408 2.13408 39.4229 1.7095C40.205 1.28492 41.0095 0.737431 41.8363 0.0670402C41.9034 0.0223467 41.9592 0 42.0039 0H42.0374C42.0821 0 42.1045 0.0223467 42.1045 0.0670402V19.0056C42.1045 19.7877 42.2832 20.4581 42.6408 21.0168C42.9983 21.5531 43.5346 21.8212 44.2497 21.8212H44.3503Z" fill="currentColor"/><path d="M35.4969 20.3129C34.8712 21.4078 34.0779 22.2905 33.117 22.9609C32.1785 23.6313 30.9495 23.9665 29.4299 23.9665C27.7986 23.9665 26.3908 23.609 25.2064 22.8939C24.0221 22.1564 23.1059 21.1956 22.4578 20.0112C21.8321 18.8045 21.5193 17.4972 21.5193 16.0894C21.5193 14.257 21.8545 12.7933 22.5249 11.6983C23.2176 10.581 24.0779 9.76538 25.1059 9.25142C26.1562 8.73745 27.2176 8.48047 28.2902 8.48047C29.3182 8.48047 30.2232 8.67041 31.0053 9.0503C31.8098 9.43019 32.4802 9.92181 33.0165 10.5252C33.5528 11.1062 33.955 11.7319 34.2232 12.4023C34.4914 13.0503 34.6254 13.6537 34.6254 14.2123C34.6254 14.3911 34.536 14.514 34.3573 14.581L25.8098 18.3017C26.145 19.1509 26.6813 19.8995 27.4187 20.5475C28.1562 21.1956 29.0947 21.5196 30.2344 21.5196C30.8824 21.5196 31.5416 21.3408 32.212 20.9833C32.8824 20.6257 33.4634 20.0894 33.955 19.3743C34.1115 19.1285 34.2902 19.0726 34.4914 19.2067L35.4299 19.7766C35.6087 19.8883 35.631 20.0671 35.4969 20.3129ZM27.821 10.8604C27.1282 10.8604 26.5807 11.0726 26.1785 11.4972C25.7763 11.9218 25.4969 12.4469 25.3405 13.0726C25.2064 13.6983 25.1506 14.324 25.1729 14.9497C25.2176 15.5754 25.307 16.0894 25.4411 16.4916L30.2008 14.1118C30.2232 13.1732 29.9997 12.4023 29.5305 11.7989C29.0835 11.1732 28.5137 10.8604 27.821 10.8604Z" fill="currentColor"/><path d="M19.1732 7.70925C19.1732 9.02768 18.838 10.1115 18.1676 10.9606C17.5196 11.7875 16.6927 12.4355 15.6872 12.9048L18.905 19.0389C19.2849 19.7539 19.6872 20.402 20.1117 20.983C20.5363 21.5416 21.1173 21.821 21.8547 21.821H21.9888C22.2793 21.821 22.4246 21.9662 22.4246 22.2567V23.1618C22.4246 23.4523 22.2793 23.5975 21.9888 23.5975H12.9385C12.648 23.5975 12.5028 23.4523 12.5028 23.1618V22.2567C12.5028 21.9662 12.648 21.821 12.9385 21.821H13.1061C13.8659 21.821 14.3911 21.6534 14.6816 21.3182C14.9944 20.9606 15.0168 20.5361 14.7486 20.0444L11.4972 14.0109C10.8715 14.078 10.2346 14.1115 9.58659 14.1115H7.3743V19.0389C7.3743 19.7986 7.50838 20.4578 7.77654 21.0165C8.06704 21.5528 8.58101 21.821 9.31844 21.821H9.51955C9.81006 21.821 9.95531 21.9662 9.95531 22.2567V23.1618C9.95531 23.4523 9.81006 23.5975 9.51955 23.5975H0.469274C0.156425 23.5975 0 23.4523 0 23.1618V22.2567C0 21.9662 0.156425 21.821 0.469274 21.821H0.670391C1.43017 21.821 1.94413 21.5528 2.21229 21.0165C2.50279 20.4578 2.64804 19.7986 2.64804 19.0389V6.03327C2.64804 5.25115 2.49162 4.59193 2.17877 4.05562C1.88827 3.5193 1.31844 3.25114 0.469274 3.25114C0.178771 3.25114 0.0335196 3.10589 0.0335196 2.81539V1.91036C0.0335196 1.61986 0.178771 1.47461 0.469274 1.47461H11.2961C12.905 1.47461 14.2905 1.76511 15.4525 2.34612C16.6369 2.90478 17.5531 3.65338 18.2011 4.59193C18.8492 5.53047 19.1732 6.56958 19.1732 7.70925ZM9.0838 11.9997C11.0503 11.9997 12.4804 11.6199 13.3743 10.8601C14.2905 10.1003 14.7486 9.05003 14.7486 7.70925C14.7486 6.34612 14.324 5.26232 13.4749 4.45785C12.648 3.65338 11.4972 3.25114 10.0223 3.25114H7.3743V11.9997H9.0838Z" fill="currentColor"/></svg>`;
+
+/* Native app top bar (Setup hub) — centered wordmark + info icon */
+const appBar = `<header class="app-bar"><span class="app-bar-side"></span><div class="app-bar-logo">${LOGO}</div><button class="app-bar-info" aria-label="Info">${I('info')}</button></header>`;
+
+/* Safari-style browser chrome — shown on web onboarding screens to signal
+   "this is a website". Native app (Part B) screens omit it. */
+const WEB_URL = 'relevais.health';
+const browserBar = `
+  <div class="browser-bar">
+    <div class="url-pill">
+      <span class="bb-lock">${I('lock')}</span>
+      <span class="url">${WEB_URL}</span>
+    </div>
+  </div>`;
+
+function footerHTML(s, idx){
+  if(s.confirm || s.milestone || s.splash || s.solo || s.next==='Get started'){
+    const gate = s.lockNext ? ' js-gate' : '';
+    const dis = s.lockNext ? ' disabled' : '';
+    return `<div class="footer-nav confirm-footer"><button class="btn btn-full${gate}" data-next${dis}>${s.next} ${I('arrow-right')}</button></div>`;
+  }
+  const disabled = idx===0;
+  const gate = s.lockNext ? ' js-gate' : '';
+  const dis = s.lockNext ? ' disabled' : '';
+  return `<div class="footer-nav">`
+    + `<button class="btn btn-back"${disabled?' disabled':' data-back'}>${I('arrow-left')} Back</button>`
+    + `<button class="btn btn-next${gate}" data-next${dis}>${s.next} ${I('arrow-right')}</button></div>`;
+}
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = screens.map((s,idx)=>{
+    let bodyInner;
+    if(s.hub){
+      bodyInner = `<div class="surface" style="background:transparent;padding:0;">`
+        + `<div class="main">${s.main}</div></div>`;
+    } else if(s.confirm || s.milestone || s.splash){
+      bodyInner = `<div class="surface" style="background:transparent;padding-top:0;">`
+        + `<div class="main">${s.main}${footerHTML(s,idx)}</div></div>`;
+    } else {
+      const stepLabel = s.step ? `<div class="step-label">${s.step}</div>` : '';
+      bodyInner = `<div class="surface">`
+        + `<div class="page-title">${stepLabel}<h1 class="title">${s.title}</h1><p class="subtitle">${s.subtitle}</p></div>`
+        + `<div class="main">${s.main}${footerHTML(s,idx)}</div>`
+        + `</div>`;
+    }
+    const isWeb = s.app !== true;   // native app (Part B) screens set app:true
+    const headerHTML = s.appbar
+      ? appBar
+      : `<header class="brand"><div class="logo">${LOGO}</div><div class="tagline">Guiding your recovery</div></header>`;
+    return `<div class="screen${isWeb?' web':''}${idx===0?' active':''}" data-index="${idx}">`
+      + statusBar
+      + (isWeb ? browserBar : '')
+      + (s.overlay || '')
+      + `<div class="scroll"><div class="content">`
+      + headerHTML
+      + `<div class="body">${bodyInner}</div>`
+      + `</div></div>`
+      + `<div class="home-indicator"></div>`
+      + `</div>`;
+  }).join('');
+  initInteractions();
+}
+
+/* ============================================================
+   Interactivity
+   ============================================================ */
+let current = 0;
+function show(idx){
+  const all = document.querySelectorAll('.screen');
+  if(idx<0 || idx>=all.length) return;
+  all[current].classList.remove('active');
+  current = idx;
+  all[current].classList.add('active');
+  // reset scroll position
+  const sc = all[current].querySelector('.scroll');
+  if(sc) sc.scrollTop = 0;
+  // iOS notification: stay hidden, then drop in after a short delay (text "arriving")
+  const scr = all[current];
+  const notif = scr.querySelector('.ios-notif');
+  if(notif){
+    notif.classList.remove('gone');     // reset if previously dismissed
+    notif.style.visibility = 'hidden';
+    setTimeout(()=>{
+      if(!scr.classList.contains('active')) return;
+      notif.style.visibility = 'visible';
+      notif.style.animation = 'none'; void notif.offsetWidth; notif.style.animation = '';
+    }, 1700);
+  }
+  // replay the subtle celebrate animation on the milestone / account-created screens
+  const cel = scr.querySelector('.confirm');
+  if(cel){ cel.classList.remove('celebrating'); void cel.offsetWidth; cel.classList.add('celebrating'); }
+  // iOS permission alerts: notifications → (1s) → health; each confirm removes its Remaining-needs row
+  runHubAlerts(scr);
+  // reset the smartwatch sync sheet on (re)entry
+  const syncSheet = scr.querySelector('#sync-sheet');
+  if(syncSheet){ clearSyncTimers(syncSheet); syncSheet.classList.remove('show'); syncSheet.dataset.synced='0'; }
+  // reset scheduling (un-ring, restore card, hide Upcoming Schedule)
+  if(scr.querySelector('#schedule-sheet')) resetSchedule(scr);
+  const surveysSheet = scr.querySelector('#surveys-sheet');
+  if(surveysSheet) surveysSheet.classList.remove('show');
+  updateProtoNav();
+}
+
+/* Prototype section nav (desktop) — jump to the first screen of each section */
+function sectionOf(s){ return s.primary ? 'primary' : (s.app ? 'inapp' : 'web'); }
+function sectionStart(sec){
+  if(sec==='web') return 0;
+  return screens.findIndex(s => sectionOf(s) === sec);
+}
+function updateProtoNav(){
+  const sec = sectionOf(screens[current]);
+  document.querySelectorAll('.proto-nav button').forEach(b =>
+    b.classList.toggle('active', b.dataset.section === sec));
+}
+function initProtoNav(){
+  document.querySelectorAll('.proto-nav button').forEach(btn=>{
+    const start = sectionStart(btn.dataset.section);
+    if(start < 0){ btn.disabled = true; return; }   // section not built yet
+    btn.addEventListener('click', ()=> show(start));
+  });
+  updateProtoNav();
+}
+
+/* Remove one Remaining-needs card; once the section is empty, clear the whole section. */
+function removeNeed(scr, key){
+  const need = scr.querySelector('.need[data-need="'+key+'"]');
+  if(need && !need.classList.contains('removed')){
+    need.classList.add('removed');
+    setTimeout(()=>{ need.style.display='none'; checkRemainingEmpty(scr); }, 260);
+  }
+}
+function checkRemainingEmpty(scr){
+  const needs = [...scr.querySelectorAll('#remaining-block .need')];
+  const anyLeft = needs.some(n => n.style.display !== 'none' && !n.classList.contains('removed'));
+  if(!anyLeft){
+    const block = scr.querySelector('#remaining-block');
+    if(block){ block.classList.add('removed'); setTimeout(()=>{ block.style.display='none'; }, 320); }
+  }
+}
+
+/* Hub permission-alert sequence: notifications → (1s) → Apple Health.
+   "Allow" removes that card; "Don't Allow" leaves it for the user to allow manually. */
+function runHubAlerts(scr){
+  const overlay = scr.querySelector('.ios-alert-overlay');
+  if(!overlay) return;
+  const titleEl = overlay.querySelector('.ios-alert-title');
+  const bodyEl  = overlay.querySelector('.ios-alert-body');
+  const alerts = [
+    {need:'notifications', title:'&ldquo;Relevais&rdquo; Would Like to Send You Notifications', body:'Notifications may include alerts, sounds and icon badges. These can be configured in Settings.'},
+    {need:'health', title:'&ldquo;Relevais&rdquo; would like access to your Apple Health Data.', body:'Notifications may include alerts, sounds and icon badges. These can be configured in Settings.'}
+  ];
+  let i = 0;
+  function present(){
+    if(i >= alerts.length) return;
+    titleEl.innerHTML = alerts[i].title;
+    bodyEl.innerHTML  = alerts[i].body;
+    overlay.classList.add('show');
+  }
+  function respond(allowed){
+    const a = alerts[i];
+    overlay.classList.remove('show');
+    if(allowed) removeNeed(scr, a.need);   // Allow removes the card; Don't Allow leaves it
+    i++;
+    if(i < alerts.length){ setTimeout(()=>{ if(scr.classList.contains('active')) present(); }, 1000); }
+  }
+  overlay.querySelectorAll('[data-alert]').forEach(btn=>{ btn.onclick = ()=> respond(btn.dataset.alert === 'allow'); });
+  // reset on (re)entry: restore rows + section, hide overlay, replay from the start
+  scr.querySelectorAll('.need').forEach(n=>{ n.classList.remove('removed'); n.style.display=''; });
+  const block = scr.querySelector('#remaining-block');
+  if(block){ block.classList.remove('removed'); block.style.display=''; }
+  overlay.classList.remove('show');
+  i = 0;
+  setTimeout(()=>{ if(scr.classList.contains('active')) present(); }, 800);
+}
+
+/* Smartwatch sync bottom sheet: Sync → (spinner) → synced → close + remove row */
+function clearSyncTimers(ov){ if(ov._t1) clearTimeout(ov._t1); if(ov._t2) clearTimeout(ov._t2); ov._t1=ov._t2=null; }
+function openSyncSheet(scr){
+  const ov = scr.querySelector('#sync-sheet'); if(!ov) return;
+  clearSyncTimers(ov);
+  const icon = ov.querySelector('.sheet-icon');
+  const status = ov.querySelector('.sheet-status');
+  const sub = ov.querySelector('.sheet-sub');
+  ov.dataset.synced = '0';
+  icon.innerHTML = '<div class="sheet-spinner">'+I('loader-circle')+'</div>';
+  status.textContent = 'Syncing with smartwatch…';
+  sub.textContent = 'This may take a moment.';
+  ov.classList.add('show');
+  ov._t1 = setTimeout(()=>{
+    icon.innerHTML = '<div class="sheet-check">'+I('circle-check')+'</div>';
+    status.textContent = 'Smartwatch synced.';
+    sub.textContent = 'Data is now being tracked.';
+    ov.dataset.synced = '1';
+    ov._t2 = setTimeout(()=> closeSyncSheet(scr), 1600);   // auto-dismiss after success
+  }, 2000);
+}
+function closeSyncSheet(scr){
+  const ov = scr.querySelector('#sync-sheet'); if(!ov) return;
+  clearSyncTimers(ov);
+  ov.classList.remove('show');
+  if(ov.dataset.synced === '1'){   // sync complete → remove the smartwatch card (clears section if last)
+    removeNeed(scr, 'smartwatch');
+  }
+}
+
+/* Schedule-your-first-call bottom sheet: pick a day → ring that date,
+   convert the card to the booked call, and reveal the Upcoming Schedule section. */
+function openScheduleSheet(scr){ const ov=scr.querySelector('#schedule-sheet'); if(ov) ov.classList.add('show'); }
+function closeScheduleSheet(scr){ const ov=scr.querySelector('#schedule-sheet'); if(ov) ov.classList.remove('show'); }
+/* Surveys sheet — WIP: the "Complete" buttons are inert; only Close/X dismiss it */
+function openSurveysSheet(scr){ const ov=scr.querySelector('#surveys-sheet'); if(ov) ov.classList.add('show'); }
+function closeSurveysSheet(scr){ const ov=scr.querySelector('#surveys-sheet'); if(ov) ov.classList.remove('show'); }
+function scheduleDate(scr, idx, short, full){
+  const days = scr.querySelectorAll('.date-strip .day');
+  days.forEach(d=>{ const dot=d.querySelector('.day-dot'); if(dot) dot.classList.remove('ringed'); });
+  if(days[idx]){ const dot=days[idx].querySelector('.day-dot'); if(dot) dot.classList.add('ringed'); }
+  const slot = scr.querySelector('#schedule-slot');
+  if(slot) slot.innerHTML = scheduleBooked(short);
+  const up = scr.querySelector('#upcoming-block');
+  if(up){ const d=scr.querySelector('#upcoming-date'); if(d) d.textContent = full; up.style.display=''; }
+  closeScheduleSheet(scr);
+}
+function resetSchedule(scr){
+  const days = scr.querySelectorAll('.date-strip .day');
+  days.forEach(d=>{ const dot=d.querySelector('.day-dot'); if(dot) dot.classList.remove('ringed'); });
+  const slot = scr.querySelector('#schedule-slot'); if(slot) slot.innerHTML = SCHEDULE_PROMPT;
+  const up = scr.querySelector('#upcoming-block'); if(up) up.style.display='none';
+  const ov = scr.querySelector('#schedule-sheet'); if(ov) ov.classList.remove('show');
+}
+
+function setReveal(id, open){
+  const el = document.getElementById(id);
+  if(el) el.classList.toggle('open', open);
+}
+
+function initInteractions(){
+  // Option groups (radio/checkbox)
+  document.querySelectorAll('.opt-group').forEach(grp=>{
+    const multi = grp.dataset.mode === 'multi';
+    grp.querySelectorAll('.option').forEach(option=>{
+      option.addEventListener('click', ()=>{
+        if(multi){
+          // exclusive checkbox handling
+          if(option.hasAttribute('data-exclusive')){
+            const willSelect = !option.classList.contains('selected');
+            grp.querySelectorAll('.option').forEach(o=>o.classList.remove('selected'));
+            option.classList.toggle('selected', willSelect);
+          } else {
+            option.classList.toggle('selected');
+            const ex = grp.querySelector('.option[data-exclusive]');
+            if(ex) ex.classList.remove('selected');
+          }
+          // checkbox-driven reveals (e.g. loaner-phone alert)
+          if(option.dataset.reveal){
+            option.dataset.reveal.split(' ').forEach(id=>setReveal(id, option.classList.contains('selected')));
+          }
+        } else {
+          // single select: clear all reveals owned by this group, then select
+          grp.querySelectorAll('.option[data-reveal]').forEach(o=>{
+            o.dataset.reveal.split(' ').forEach(id=>setReveal(id,false));
+          });
+          grp.querySelectorAll('.option').forEach(o=>o.classList.remove('selected'));
+          option.classList.add('selected');
+          if(option.dataset.reveal){
+            option.dataset.reveal.split(' ').forEach(id=>setReveal(id,true));
+          }
+        }
+        // gate the screen's Next button on an "agree"-style checkbox
+        if(option.hasAttribute('data-gate')){
+          const scr = option.closest('.screen');
+          const gateBtn = scr && scr.querySelector('.js-gate');
+          if(gateBtn) gateBtn.disabled = !option.classList.contains('selected');
+        }
+      });
+    });
+  });
+
+  // Selects: colour + change-driven reveals (smartwatch type -> model)
+  document.querySelectorAll('select.input').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      sel.classList.toggle('has-value', !!sel.value);
+      if(sel.dataset.reveal){
+        setReveal(sel.dataset.reveal, !!sel.value);
+        // update dependent model label e.g. "What model of Apple Watch?"
+        const target = document.getElementById(sel.dataset.reveal);
+        if(target){
+          const lbl = target.querySelector('[data-model-label]');
+          if(lbl) lbl.textContent = `What model of ${sel.value}?`;
+        }
+      }
+    });
+  });
+
+  // Sliders
+  document.querySelectorAll('.slider').forEach(sl=>{
+    const input = sl.querySelector('input[type=range]');
+    const val = sl.querySelector('.val');
+    const update = ()=>{
+      const min=+input.min, max=+input.max, v=+input.value;
+      const pct = ((v-min)/(max-min))*100;
+      // keep thumb pill within the track bounds
+      const clamped = Math.max(7, Math.min(93, pct));
+      sl.style.setProperty('--pct', clamped + '%');
+      sl.querySelector('.slider-fill').style.width = pct + '%';
+      val.textContent = v;
+    };
+    input.addEventListener('input', update);
+    update();
+  });
+
+  // Navigation
+  document.querySelectorAll('[data-next]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(current === screens.length-1){ show(0); }   // "Get started" loops to start
+      else show(current+1);
+    });
+  });
+  document.querySelectorAll('[data-back]').forEach(btn=>{
+    btn.addEventListener('click', ()=> show(current-1));
+  });
+
+  // Keyboard arrows for presenting
+  document.addEventListener('keydown', (e)=>{
+    if(e.key==='ArrowRight') show(current+1);
+    if(e.key==='ArrowLeft') show(current-1);
+  });
+
+  initProtoNav();
+  initCodeInputs();
+  initKeyboard();
+
+  // Collapsible sections (Remaining needs / Upcoming Schedule) — chevron toggles content
+  document.querySelectorAll('.section-head').forEach(h=>{
+    h.addEventListener('click', ()=>{
+      h.classList.toggle('collapsed');
+      const body = h.nextElementSibling;
+      if(body && body.classList.contains('section-body')) body.classList.toggle('hidden');
+    });
+  });
+
+  // Smartwatch "Sync" opens the bottom sheet; X / Cancel close it
+  document.querySelectorAll('.need[data-need="smartwatch"] .pill').forEach(btn=>{
+    btn.addEventListener('click', ()=> openSyncSheet(btn.closest('.screen')));
+  });
+  // Notifications / Apple Health "Allow" (manual) removes that card
+  document.querySelectorAll('.need[data-need="notifications"] .pill, .need[data-need="health"] .pill').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ const n=btn.closest('.need'); removeNeed(btn.closest('.screen'), n.dataset.need); });
+  });
+  document.querySelectorAll('[data-sheet-close]').forEach(btn=>{
+    btn.addEventListener('click', ()=> closeSyncSheet(btn.closest('.screen')));
+  });
+
+  // Scheduling (delegated — Schedule/Reschedule buttons get swapped in dynamically)
+  document.getElementById('app').addEventListener('click', (e)=>{
+    const open = e.target.closest('[data-open-schedule]');
+    if(open){ openScheduleSheet(open.closest('.screen')); return; }
+    const date = e.target.closest('[data-date]');
+    if(date){ scheduleDate(date.closest('.screen'), +date.dataset.dateIdx, date.dataset.dateShort, date.dataset.dateFull); return; }
+    const close = e.target.closest('[data-sched-close]');
+    if(close){ closeScheduleSheet(close.closest('.screen')); return; }
+    const surveys = e.target.closest('[data-open-surveys]');
+    if(surveys){ openSurveysSheet(surveys.closest('.screen')); return; }
+    const surveysClose = e.target.closest('[data-surveys-close]');
+    if(surveysClose){ closeSurveysSheet(surveysClose.closest('.screen')); return; }
+  });
+}
+
+/* Simulated iOS software keyboard — desktop only (a real phone shows its own).
+   Slides up when an input is focused; keys type into the focused field. */
+function initKeyboard(){
+  const app = document.getElementById('app');
+  if(app.querySelector('.ios-kb')) return;
+  const isMobile = ()=> window.matchMedia('(max-width:460px)').matches;
+  let activeField=null, shifted=false, mode='qwerty', hideT=null;
+  const kb = document.createElement('div');
+  kb.className = 'ios-kb';
+  app.appendChild(kb);
+
+  const Q=['qwertyuiop','asdfghjkl','zxcvbnm'];
+  const S=['1234567890','-/:;()$&@"','.,?!\''];
+
+  function keyEl(label, cls, data){
+    const b=document.createElement('div');
+    b.className='kb-key'+(cls?' '+cls:'');
+    b.textContent=label;
+    b.dataset.k = (data!==undefined?data:label);
+    b.addEventListener('mousedown', e=> e.preventDefault());   // keep field focused
+    b.addEventListener('click', ()=> press(b.dataset.k));
+    return b;
+  }
+  function row(){ const r=document.createElement('div'); r.className='kb-row'; return r; }
+
+  function build(){
+    kb.innerHTML='';
+    kb.classList.toggle('numeric', mode==='numeric');
+    if(mode==='numeric'){
+      [['1','2','3'],['4','5','6'],['7','8','9'],['blank','0','del']].forEach(rr=>{
+        const r=row();
+        rr.forEach(k=>{
+          if(k==='blank') r.appendChild(keyEl('','blank','noop'));
+          else if(k==='del') r.appendChild(keyEl('⌫','','del'));
+          else r.appendChild(keyEl(k,'',k));
+        });
+        kb.appendChild(r);
+      });
+      return;
+    }
+    const sym = mode==='symbols';
+    const set = sym ? S : Q;
+    const cap = c => (!sym && shifted) ? c.toUpperCase() : c;
+    let r=row(); set[0].split('').forEach(c=> r.appendChild(keyEl(cap(c),'',c))); kb.appendChild(r);
+    r=row(); set[1].split('').forEach(c=> r.appendChild(keyEl(cap(c),'',c))); kb.appendChild(r);
+    r=row();
+    r.appendChild(keyEl(sym?'#+=':'⇧','special wide','shift'));
+    set[2].split('').forEach(c=> r.appendChild(keyEl(cap(c),'',c)));
+    r.appendChild(keyEl('⌫','special wide','del'));
+    kb.appendChild(r);
+    r=row();
+    r.appendChild(keyEl(sym?'ABC':'123','special','mode'));
+    r.appendChild(keyEl('space','space',' '));
+    r.appendChild(keyEl('return','return','return'));
+    kb.appendChild(r);
+  }
+
+  function typeChar(ch){
+    const el=activeField; if(!el) return;
+    if(el.maxLength===1){ el.value=ch; el.dispatchEvent(new Event('input',{bubbles:true})); return; }
+    const max = el.maxLength>0 ? el.maxLength : Infinity;
+    if(el.value.length<max){ el.value+=ch; el.dispatchEvent(new Event('input',{bubbles:true})); }
+  }
+  function del(){
+    const el=activeField; if(!el) return;
+    if(el.maxLength===1 && el.value===''){
+      const boxes=[...(el.closest('.code-boxes')?el.closest('.code-boxes').querySelectorAll('.code-box'):[])];
+      const idx=boxes.indexOf(el);
+      if(idx>0){ boxes[idx-1].value=''; boxes[idx-1].focus(); boxes[idx-1].dispatchEvent(new Event('input',{bubbles:true})); }
+      return;
+    }
+    el.value=el.value.slice(0,-1); el.dispatchEvent(new Event('input',{bubbles:true}));
+  }
+  function press(k){
+    if(k==='noop') return;
+    if(k==='shift'){ shifted=!shifted; build(); return; }
+    if(k==='mode'){ mode = mode==='symbols' ? 'qwerty' : 'symbols'; build(); return; }
+    if(k==='return'){ if(activeField) activeField.blur(); hide(); return; }
+    if(k==='del'){ del(); return; }
+    typeChar(k);
+    if(shifted){ shifted=false; build(); }
+  }
+  function layoutFor(el){
+    if(el.classList.contains('code-box')) return 'numeric';
+    const im=el.getAttribute('inputmode');
+    if(im==='numeric'||im==='tel'||el.type==='tel') return 'numeric';
+    return 'qwerty';
+  }
+  function show(el){
+    if(isMobile()) return;
+    activeField=el; shifted=false; mode=layoutFor(el); build();
+    clearTimeout(hideT);
+    requestAnimationFrame(()=> kb.classList.add('up'));
+  }
+  function hide(){ kb.classList.remove('up'); activeField=null; }
+
+  app.addEventListener('focusin', e=>{
+    const t=e.target;
+    if(t.tagName!=='INPUT') return;
+    // dismiss any iOS notification on this screen once the user taps a field
+    const sc = t.closest('.screen');
+    const nf = sc && sc.querySelector('.ios-notif');
+    if(nf){ nf.style.animation = 'none'; nf.classList.add('gone'); }   // clear fill-mode so .gone can slide it out
+    if(t.type!=='checkbox' && t.type!=='radio' && t.type!=='range'){ show(t); }
+  });
+  app.addEventListener('focusout', ()=>{
+    clearTimeout(hideT);
+    hideT=setTimeout(()=>{
+      const a=document.activeElement;
+      if(!(a && a.tagName==='INPUT')) hide();
+    }, 120);
+  });
+}
+
+/* Verification code entry: digits only, auto-advance, and unlock the gated
+   "Verify and Sign In" button only once all boxes are filled. */
+function initCodeInputs(){
+  document.querySelectorAll('.code-boxes').forEach(group=>{
+    const inputs = [...group.querySelectorAll('.code-box')];
+    const screen = group.closest('.screen');
+    const gateBtn = screen && screen.querySelector('.js-gate');
+    const refresh = ()=>{
+      const done = inputs.every(i => i.value.trim().length === 1);
+      if(gateBtn) gateBtn.disabled = !done;
+      if(done && document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    };
+    inputs.forEach((inp,i)=>{
+      inp.addEventListener('input', ()=>{
+        inp.value = inp.value.replace(/\D/g,'').slice(0,1);
+        if(inp.value && i < inputs.length-1) inputs[i+1].focus();
+        refresh();
+      });
+      inp.addEventListener('keydown', e=>{
+        if(e.key==='Backspace' && !inp.value && i>0){ inputs[i-1].focus(); }
+      });
+    });
+    refresh();
+  });
+}
+
+render();
+</script>
+</body>
+</html>
