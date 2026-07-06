@@ -644,6 +644,7 @@
   .sum-h1{font-family:var(--serif);font-weight:600;font-size:36px;line-height:1.2;letter-spacing:-.015em;color:var(--foreground);margin:0;}
   .sum-sub{font-family:var(--serif);font-weight:500;font-size:20px;line-height:1.2;color:var(--foreground-muted);margin:0;letter-spacing:-.01em;}
   .sum-card{background:var(--background);border-radius:12px;box-shadow:0 4px 15px rgba(38,38,38,.06);padding:16px;display:flex;flex-direction:column;gap:12px;}
+  .sum-done-btn{margin:0 8px;height:52px;border:none;cursor:pointer;background:var(--primary);color:var(--primary-foreground);font-family:var(--sans);font-weight:600;font-size:16px;border-radius:999px;}
   .sum-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
   .sum-label{font-size:14px;color:var(--foreground-muted);}
   .sum-value{font-size:14px;font-weight:500;color:var(--neutral-foreground);}
@@ -1323,11 +1324,11 @@ function hubRow(icon,h,s,btn,style,iconVar){
 const SCHEDULE_PROMPT =
   `<div class="schedule-card"><div class="task-ico lightest">${I('smartphone')}</div>`
   + `<div class="task-text"><div class="task-h">Schedule your first call</div><div class="task-s">Schedule an introduction with your health coach.</div></div>`
-  + `<button class="pill solid" data-open-schedule>Schedule</button></div>`;
-function scheduleBooked(short){
-  return `<div class="hub-row"><div class="task-ico">${I('phone')}</div>`
-    + `<div class="task-text"><div class="task-h">Call with Coach Tanya</div><div class="task-s">${short}, 2:30pm · 30 min</div></div>`
-    + `<button class="pill blue" data-open-schedule>Reschedule</button></div>`;
+  + `<button class="pill solid" data-sch-open="call">Schedule</button></div>`;
+function scheduleBooked(short, time){
+  return `<div class="call-card now"><div class="cc-ico">${I('smartphone')}</div>`
+    + `<div class="cc-text"><div class="cc-h">Call with Coach Tanya</div><div class="cc-s">${short}, ${time || '2:30pm'} · 30 min</div></div>`
+    + `<button class="cc-join now" data-join-call>Join Now</button></div>`;
 }
 
 /* ----- Primary App: Home — data-driven day states ----- */
@@ -1354,11 +1355,9 @@ const HOME_DAYS = {
     eyebrow:'Hi Amy!', headline:'Let&rsquo;s get moving.',
     dateFull:'Tuesday, April 14, 2026',
     strip:{active:1, dots:['','done','event','event','','','event']},
-    hero:{type:'call', variant:'soon', h:'Call with Coach Tanya', s:'Starts in 1min • 10:30am', btn:'Join Soon'},
     live:[['school','Group Learning','30min']],
     progress:{pct:0}, today:true, tip:true,
-    upcoming:[{ring:'now',date:'Tue',time:'10:30am',name:'Coach Call',action:'join'},
-              {ring:'grey',date:'Thu',time:'2:30pm',name:'Group Workout',action:'resched'}],
+    upcoming:[{ring:'grey',date:'Thu',time:'2:30pm',name:'Group Workout',action:'resched'}],
     workouts:{ streak:null, group:{c:[0],btn:'Join',style:'solid'}, solo:{c:[0,0],btn:'Start',style:'solid'} }
   },
   wed:{
@@ -1582,7 +1581,8 @@ function vcSummary(){
         + `<div class="sum-ai">${I('sparkles')}Visit notes are automatically generated using AI tools.</div>`
         + `<p class="sum-body">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Proin in augue id augue ullamcorper tristique sit amet et orci.</p>`
       + `</div>`
-    + `</div>`;
+    + `</div>`
+    + `<button class="sum-done-btn" data-sum-done>Done</button>`;
 }
 
 /* ----- Coach Kai chat (bottom sheet opened by the tab-bar FAB) ----- */
@@ -2299,7 +2299,8 @@ const screens = [
             + `<div class="bar-banner amber soft" style="margin-bottom:16px;"><span class="lock-badge">${I('lock')}</span><span>Relevais will never share any of your health data with outside sources.</span></div>`
             + `<button class="sheet-cancel" data-surveys-close>Close</button>`
           + `</div>`
-        + `</div></div>`,
+        + `</div></div>`
+      + schSheetHTML(),
     main:
       `<div class="hub">`
       + `<div class="hub-titlewrap"><div class="hub-eyebrow">Welcome to Relevais!</div>`
@@ -2333,7 +2334,7 @@ const screens = [
             + `<div class="section-body">`
               + `<div class="upcoming">`
                 + `<div class="upcoming-date" id="upcoming-date">Tuesday, April 7</div>`
-                + `<div class="upcoming-row"><span class="up-ring"></span><span class="up-time">2:30pm</span><span class="up-name">Coach Tanya Call</span><button class="up-resched" data-open-schedule>Reschedule ${I('chevron-right')}</button></div>`
+                + `<div class="upcoming-row"><span class="up-ring"></span><span class="up-time">2:30pm</span><span class="up-name">Coach Tanya Call</span><button class="up-resched" data-sch-open="call">Reschedule ${I('chevron-right')}</button></div>`
               + `</div>`
             + `</div>`
           + `</div>`
@@ -2665,6 +2666,24 @@ function resetSchedule(scr){
   const slot = scr.querySelector('#schedule-slot'); if(slot) slot.innerHTML = SCHEDULE_PROMPT;
   const up = scr.querySelector('#upcoming-block'); if(up) up.style.display='none';
   const ov = scr.querySelector('#schedule-sheet'); if(ov) ov.classList.remove('show');
+  const wiz = scr.querySelector('#sch-sheet'); if(wiz) wiz.classList.remove('show');
+}
+/* Onboarding hub: commit the wizard's RSVP — ring the date, swap the prompt to the booked
+   call, and reveal Upcoming Schedule with the chosen date + time. */
+function bookOnboardingCall(scr){
+  const idx = schState.date;
+  const full = SCH_DATES[idx];        // e.g. "Tuesday, April 7"
+  const short = full.slice(0,3);      // "Tue"
+  const days = scr.querySelectorAll('.date-strip .day');
+  days.forEach(d=>{ const dot=d.querySelector('.day-dot'); if(dot) dot.classList.remove('ringed'); });
+  if(days[idx]){ const dot=days[idx].querySelector('.day-dot'); if(dot) dot.classList.add('ringed'); }
+  const slot = scr.querySelector('#schedule-slot'); if(slot) slot.innerHTML = scheduleBooked(short, SCH_TIMES[schState.time]);
+  const up = scr.querySelector('#upcoming-block');
+  if(up){
+    const d=scr.querySelector('#upcoming-date'); if(d) d.textContent = full;
+    const t=scr.querySelector('.up-time'); if(t) t.textContent = SCH_TIMES[schState.time];
+    up.style.display='';
+  }
 }
 
 /* ===== Home scheduling wizard: Select date → Select time → Confirm → Confirmation ===== */
@@ -2991,11 +3010,15 @@ function initInteractions(){
     const schBk = e.target.closest('[data-sch-back]');
     if(schBk){ schState.step=schBk.dataset.schBack; renderSchBody(schBk.closest('.screen')); return; }
     const schCf = e.target.closest('[data-sch-confirm]');
-    if(schCf){ schState.step='done'; renderSchBody(schCf.closest('.screen')); return; }
+    if(schCf){ const scr=schCf.closest('.screen'); schState.step='done'; renderSchBody(scr); if(scr.querySelector('#schedule-slot')) bookOnboardingCall(scr); return; }
     const schCl = e.target.closest('[data-sch-close]');
     if(schCl){ closeSchedWizard(schCl.closest('.screen')); return; }
     // Video call: "Join Now" (home) → lobby; lobby/in-call buttons drive the flow
     if(e.target.closest('.home .cc-join.now, .home .up-link.now')){ goToScreen(s=>s.videoStep==='lobby'); return; }
+    // Onboarding hub: booked "Join Now" → same coach-call flow (lobby)
+    if(e.target.closest('[data-join-call]')){ goToScreen(s=>s.videoStep==='lobby'); return; }
+    // Call Summary "Done" → Primary App Home
+    if(e.target.closest('[data-sum-done]')){ goToScreen(s=>s.home); return; }
     const vcBtn = e.target.closest('[data-vc]');
     if(vcBtn){
       const a = vcBtn.dataset.vc;
