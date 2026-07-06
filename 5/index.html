@@ -2447,8 +2447,8 @@ function render(){
       bodyInner = `<div class="wko">${s.main}</div>`;
     } else if(s.library || s.libArticle){
       bodyInner = `<div class="lib">${s.main}</div>`;
-    } else if(s.solo){
-      bodyInner = s.main;   // solo flow builders include their own .solo wrapper
+    } else if(typeof s.solo === 'string'){
+      bodyInner = s.main;   // workout solo-flow builders include their own .solo wrapper + action buttons
     } else if(s.hub){
       bodyInner = `<div class="surface" style="background:transparent;padding:0;">`
         + `<div class="main">${s.main}</div></div>`;
